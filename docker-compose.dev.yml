@@ -1,0 +1,25 @@
+x-dev: &dev
+  build:
+    target: dev
+  image: galareserve:dev
+  environment:
+    DJANGO_SETTINGS_MODULE: config.settings.dev
+  volumes:
+    - .:/app
+
+services:
+  api:
+    <<: *dev
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *dev
+
+  db:
+    ports:
+      - "5432:5432"
+  rabbitmq:
+    image: rabbitmq:4.2-management
+    ports:
+      - "15672:15672"    
