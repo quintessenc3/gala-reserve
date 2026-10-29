@@ -30,8 +30,8 @@ services:
   nginx:
     image: nginx:1.28-alpine
     restart: unless-stopped
-    #depends_on:
-    #  api: {condition: service_healthy}
+    depends_on:
+      - api
     ports:
       - "80:80"
       - "443:443"
