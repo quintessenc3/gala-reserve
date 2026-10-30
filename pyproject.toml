@@ -32,4 +32,4 @@ dev = [
 package = false
 
 [tool.pytest]
-DJANGO_SETTINGS_MODULE = "eventhub.config.settings.test"
+DJANGO_SETTINGS_MODULE = "gala_reserve.config.settings.test"
