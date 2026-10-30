@@ -1,8 +1,12 @@
+import os
 from pathlib import Path
 
 from environ import Env
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
 
 env = Env()
 
@@ -121,3 +125,5 @@ STORAGES = {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
+
+AUTH_USER_MODEL = 'users.User'
