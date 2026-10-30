@@ -13,6 +13,11 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
+    'apps.booking',
+    'apps.core',
+    'apps.events',
+    'apps.promos',
+    'apps.users',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
