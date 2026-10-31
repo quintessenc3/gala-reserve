@@ -1,0 +1,33 @@
+INVALID_CODE = 'invalid_code'
+CODE_EXPIRED = 'code_expired'
+TOO_MANY_ATTEMPTS = 'too_many_attempts'
+ALREADY_VERIFIED = 'already_verified'
+RESEND_COOLDOWN = 'resend_cooldown'
+
+EVENT_NOT_EDITABLE = 'event_not_editable'
+EVENT_NOT_PUBLISHABLE = 'event_not_publishable'
+INVALID_EVENT_TRANSITION = 'invalid_event_transition'
+CATEGORY_IN_USE = 'category_in_use'
+
+EVENT_NOT_PUBLISHED = 'event_not_published'
+REGISTRATION_CLOSED = 'registration_closed'
+ALREADY_REGISTERED = 'already_registered'
+PAYMENT_REQUIRED = 'payment_required'
+EVENT_IS_FREE = 'event_is_free'
+NO_SEATS_AVAILABLE = 'no_seats_available'
+REGISTRATION_NOT_ACTIVE = 'registration_not_active'
+CANCELLATION_DEADLINE_PASSED = 'cancellation_deadline_passed'
+
+ORDER_ALREADY_PAID = 'order_already_paid'
+ORDER_CANCELLED = 'order_cancelled'
+ORDER_EXPIRED = 'order_expired'
+
+TICKET_ALREADY_USED = 'ticket_already_used'
+TICKET_CANCELLED = 'ticket_cancelled'
+CHECKIN_CLOSED = 'checkin_closed'
+
+PROMO_CODE_NOT_FOUND = 'promo_code_not_found'
+PROMO_CODE_DISABLED = 'promo_code_disabled'
+PROMO_CODE_EXPIRED = 'promo_code_expired'
+PROMO_CODE_EXHAUSTED = 'promo_code_exhausted'
+PROMO_CODE_ALREADY_USED = 'promo_code_already_used'
