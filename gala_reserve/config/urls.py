@@ -1,9 +1,13 @@
 import os
 import sys
 
+from apps.core.exceptions import django_exc_handler_stub
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path
+
+handler404 = django_exc_handler_stub
+handler500 = django_exc_handler_stub
 
 urlpatterns = [
     path('admin/', admin.site.urls)
