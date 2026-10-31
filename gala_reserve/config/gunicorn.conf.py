@@ -1,4 +1,4 @@
-import socket
+import socket  # noqa: N999
 
 bind = '0.0.0.0:8000'
 
