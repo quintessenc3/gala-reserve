@@ -1,6 +1,10 @@
-import factory
+import hashlib
+from datetime import timedelta
 
-from apps.users.models import User
+import factory
+from django.utils import timezone
+
+from apps.users.models import OneTimeCode, OneTimeCodePurpose, User
 
 USER_TEST_PASSWORD = 'P@ssw0rd'
 
@@ -23,3 +27,25 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = User
+
+
+class OneTimeCodeFactory(factory.django.DjangoModelFactory):
+    '''
+    Фабрика OneTimeCode.
+    '''
+
+    user = factory.SubFactory(UserFactory)
+    purpose = OneTimeCodePurpose.EMAIL_VERIFICATION
+    code_hash = factory.LazyAttribute(
+        lambda obj: hashlib.md5(
+            obj.raw_code.encode('utf-8')
+        ).hexdigest()
+    )
+    used_at = None
+    attempts = 0
+
+    class Meta:
+        model = OneTimeCode
+
+    class Params:
+        raw_code = '123456'
