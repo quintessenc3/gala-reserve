@@ -1,8 +1,6 @@
 import hashlib
-from datetime import timedelta
 
 import factory
-from django.utils import timezone
 
 from apps.users.models import OneTimeCode, OneTimeCodePurpose, User
 
