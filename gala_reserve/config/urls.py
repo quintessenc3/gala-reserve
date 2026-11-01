@@ -5,12 +5,20 @@ from apps.core.exceptions import django_exc_handler_stub
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 
 handler404 = django_exc_handler_stub
 handler500 = django_exc_handler_stub
 
 urlpatterns = [
-    path('admin/', admin.site.urls)
+    path('admin/', admin.site.urls),
+    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc')
 ]
 
 TESTING = "test" in sys.argv or "PYTEST_VERSION" in os.environ
