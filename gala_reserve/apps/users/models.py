@@ -1,9 +1,13 @@
+from datetime import timedelta
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
+from django.db.models import Q
 from django.db.models.functions import Lower
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -50,5 +54,50 @@ class User(AbstractUser):
                 Lower('username'),
                 name='unique_user_username',
                 violation_error_message='Пользователь с таким именем пользователя уже существует.'
+            ),
+        )
+
+
+class OneTimeCodePurpose(models.TextChoices):
+    EMAIL_VERIFICATION = 'email_verification', 'Верификация email'
+    PASSWORD_RESET = 'password_reset', 'Сброс пароля'
+
+class OneTimeCode(models.Model):
+    '''
+    Модель одноразового кода.
+    '''
+
+    TTL_MINUTES = timedelta(minutes=15)
+    MAX_ATTEMPTS = 5
+    RESEND_COOLDOWN_SECONDS = timedelta(seconds=60)
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,)
+    purpose = models.CharField('Назначение', max_length=32, choices=OneTimeCodePurpose.choices)
+    code_hash = models.CharField('Хэш кода', max_length=64)
+    attempts = models.PositiveSmallIntegerField('Кол-во попыток', default=0)
+    used_at = models.DateTimeField('Дата и время использования', null=True, blank=True)
+    created_at = models.DateTimeField('Дата и время создания', default=timezone.now)
+
+    @property
+    def is_expired(self):
+        return self.created_at + OneTimeCode.TTL_MINUTES > timezone.now()
+
+    @property
+    def is_reached_attempts_limit(self):
+        return self.attempts >= OneTimeCode.MAX_ATTEMPTS
+
+    class Meta:
+        verbose_name = 'Одноразовый код'
+        verbose_name_plural = 'Одноразовые коды'
+        indexes = (
+            models.Index(
+                fields=['user', 'purpose', '-created_at'],
+                name='onetimecode_user_purpose_idx',
+            ),
+        )
+        constraints = (
+            models.CheckConstraint(
+                condition=Q(purpose__in=OneTimeCodePurpose.values),
+                name='otc_valid_purpose_ck',
             ),
         )
