@@ -81,7 +81,7 @@ class OneTimeCode(models.Model):
 
     @property
     def is_expired(self):
-        return self.created_at + OneTimeCode.TTL_MINUTES > timezone.now()
+        return timezone.now() >= self.created_at + self.TTL_MINUTES
 
     @property
     def is_reached_attempts_limit(self):
