@@ -65,12 +65,12 @@ def otp_issue(user_id: int, purpose: str) -> tuple[OneTimeCode, str | None]:
             settings.SECRET_KEY.encode('utf-8'),
             code.encode('utf-8'),
             hashlib.sha256
-        )
+        ).hexdigest()
 
         if otp is None:
             otp = OneTimeCode.objects.create(user_id=user_id, purpose=purpose, code_hash=code_hash)
         elif otp.is_expired or otp.is_reached_attempts_limit:
-            otp.code_hash = otp.code_hash
+            otp.code_hash = code_hash
             otp.created_at = timezone.now()
             otp.attempts = 0
 
