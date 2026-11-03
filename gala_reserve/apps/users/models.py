@@ -70,6 +70,7 @@ class OneTimeCode(models.Model):
     TTL_MINUTES = timedelta(minutes=15)
     MAX_ATTEMPTS = 5
     RESEND_COOLDOWN_SECONDS = timedelta(seconds=60)
+    CODE_LENGTH = 6
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,)
     purpose = models.CharField('Назначение', max_length=32, choices=OneTimeCodePurpose.choices)
