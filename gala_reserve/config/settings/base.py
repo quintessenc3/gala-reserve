@@ -113,7 +113,7 @@ REST_FRAMEWORK = {
     'DEFAULT_VERSION': 'v1',
     'ALLOWED_VERSIONS': ('v1',),
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
-    'EXCEPTION_HANLDER': 'apps.core.views.exception_handler'
+    'EXCEPTION_HANDLER': 'apps.core.views.exception_handler'
 }
 
 SPECTACULAR_SETTINGS = {
