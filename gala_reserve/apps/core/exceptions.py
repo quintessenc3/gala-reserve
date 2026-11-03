@@ -7,12 +7,12 @@ class DomainError(Exception):
     Базовый класс для бизнес-ошибок.
     '''
 
-    def __init__(self, code: str, message: str, http_status: int, *args, **kwargs):
-        self.code = code
-        self.message = message
-        self.http_status = http_status
-        
-        super().__init__(*args, **kwargs)
+    code: int
+    message: str
+    http_status: int
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(self.message)
 
 
 def django_exc_handler_stub(request, exc=None):
