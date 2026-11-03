@@ -27,15 +27,18 @@ def test_otc_valid_purpose_constraint(db, otp: OneTimeCode):
         otp.validate_constraints(exclude={'user'})
 
 
-def test_is_expired_property(otp: OneTimeCode):
-    with freezegun.freeze_time('2015-07-10 12:00:00'):
-        created_at = timezone.now() - OneTimeCode.TTL_MINUTES
+@pytest.mark.parametrize('delta, expected', [
+        (timedelta(seconds=-1), False),
+        (timedelta(seconds=0), True),
+        (timedelta(seconds=1), True),
+    ],
+)
+def test_is_expired(delta, expected, otp):
+    created_at = timezone.now()
+    expires_at = created_at + OneTimeCode.TTL_MINUTES
 
-        otp.created_at = created_at
-        assert not otp.is_expired
-
-        otp.created_at += timedelta(seconds=1)
-        assert otp.is_expired
+    with freezegun.freeze_time(expires_at + delta):
+        assert otp.is_expired is expected
 
 
 def test_is_exceeded_attempts_limit_property(otp: OneTimeCode):
