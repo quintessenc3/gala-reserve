@@ -76,16 +76,12 @@ class TestOTPIssue:
         assert re.match(f'[0-9]{{{OneTimeCode.CODE_LENGTH}}}', code)
 
     @pytest.mark.parametrize(('field', 'value'), [
-        ('created_at', OneTimeCode.TTL_MINUTES),
+        ('created_at', -OneTimeCode.TTL_MINUTES),
         ('attempts', OneTimeCode.MAX_ATTEMPTS)
     ])
     def test_update_otp_code_if_expired_or_attempts_limit(self, field: str, value: timedelta | int, user: User):
         old_otp, old_code = otp_issue(user.pk, OneTimeCodePurpose.EMAIL_VERIFICATION)
-        setattr(
-            old_otp,
-            field,
-            getattr(old_otp, field) + value
-        )
+        setattr(old_otp, field, getattr(old_otp, field) + value)
         old_otp.save()
 
         otp, code = otp_issue(user.pk, OneTimeCodePurpose.EMAIL_VERIFICATION)
