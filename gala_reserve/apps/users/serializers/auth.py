@@ -4,9 +4,9 @@ from rest_framework import serializers
 from apps.users.models import User
 
 
-class RegisterSerializer(serializers.ModelSerializer):
+class RegisterInputSerializer(serializers.ModelSerializer):
     '''
-    Сериализатор регистрационных данных пользователя.
+    Сериализатор входных регистрационных данных пользователя.
     '''
 
     class Meta:
