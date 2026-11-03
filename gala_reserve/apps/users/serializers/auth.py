@@ -15,3 +15,14 @@ class RegisterInputSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'password': {'validators': [validate_password]}
         }
+
+
+class RegisterOutputSerializer(serializers.ModelSerializer):
+    '''
+    Сериализатор выходных данных пользователя после регистрации.
+    '''
+
+    class Meta:
+        model = User
+        fields = ('id', 'email', 'username', 'first_name', 'last_name')
+        read_only_fields = fields
