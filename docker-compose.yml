@@ -51,7 +51,7 @@ services:
 
   worker:
     <<: *app
-    command: celery -A config worker -l info -Q default,emails
+    command: celery -A config worker -l info
     depends_on:
       redis:    {condition: service_healthy}
       rabbitmq: {condition: service_healthy}
