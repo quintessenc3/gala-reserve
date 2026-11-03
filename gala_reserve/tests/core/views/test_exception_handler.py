@@ -24,22 +24,19 @@ def test_response_format():
 
 
 def test_domain_error_handling():
-    code = error_codes.INVALID_CODE
-    message = 'Вы предоставили неверный верификационный код.'
+    class InvalidCode(DomainError):
+        code = error_codes.INVALID_CODE
+        message = 'Вы предоставили неверный верификационный код.'
+        http_status = status.HTTP_400_BAD_REQUEST
 
-    exc = DomainError(
-        code=code,
-        message=message,
-        http_status=status.HTTP_400_BAD_REQUEST
-    )
-    response = exception_handler(exc, {})
+    response = exception_handler(InvalidCode(), {})
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     response_data = response.data
     
-    assert response_data['error']['code'] == code
-    assert response_data['error']['message'] == message
+    assert response_data['error']['code'] == InvalidCode.code
+    assert response_data['error']['message'] == InvalidCode.message
 
 
 def test_exc_with_retry_after():
