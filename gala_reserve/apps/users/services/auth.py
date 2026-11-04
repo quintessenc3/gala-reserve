@@ -5,9 +5,36 @@ import random
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from rest_framework import exceptions, status
 
+from apps.core import error_codes
+from apps.core.exceptions import DomainError
 from apps.users.models import OneTimeCode, OneTimeCodePurpose, User
 from apps.users.tasks.auth import send_verification_email
+
+
+class InvalidCodeError(DomainError):
+    code = error_codes.INVALID_CODE
+    message = 'Этот код неверный. Повторите попытку.'
+    http_status = status.HTTP_400_BAD_REQUEST
+
+
+class CodeExpiredError(DomainError):
+    code = error_codes.CODE_EXPIRED
+    message = 'Код истек. Запросите новый код.'
+    http_status = status.HTTP_400_BAD_REQUEST
+
+
+class TooManyAttempts(DomainError):
+    code = error_codes.TOO_MANY_ATTEMPTS
+    message = 'Для этого кода превышен лимит попыток. Запросите новый код.'
+    http_status = status.HTTP_400_BAD_REQUEST
+
+
+class AlreadyVerified(DomainError):
+    code = error_codes.ALREADY_VERIFIED
+    message = 'Этот пользователь уже верифицирован.'
+    http_status = status.HTTP_409_CONFLICT
 
 
 def user_register(
@@ -39,6 +66,55 @@ def user_register(
         )
 
     return user
+
+
+def user_email_verify(*, user_id: int, code: str):
+    with transaction.atomic():
+        try:
+            user = User.objects.select_for_update().get(pk=user_id)
+        except User.DoesNotExist:
+            raise exceptions.NotFound(detail='Пользователь не найден.')
+
+        if user.is_email_verified:
+            raise AlreadyVerified
+
+        try:
+            otp = OneTimeCode.objects.select_for_update().get(
+                user_id=user_id,
+                purpose=OneTimeCodePurpose.EMAIL_VERIFICATION,
+            )
+        except OneTimeCode.DoesNotExist:
+            raise InvalidCodeError
+
+        if otp.is_expired == True:
+            raise CodeExpiredError
+
+        code_digest = hmac.new(
+            settings.SECRET_KEY.encode('utf-8'),
+            code.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+
+        error = None
+
+        if not hmac.compare_digest(otp.code_hash, code_digest):
+            otp.attempts += 1
+
+            if otp.is_reached_attempts_limit:
+                error = TooManyAttempts()
+            else:
+                otp.save(update_fields=['attempts'])
+                error = InvalidCodeError()
+
+        else:
+            otp.used_at = timezone.now()
+            otp.save(update_fields=['used_at'])
+
+            user.is_email_verified = True
+            user.save(update_fields=['is_email_verified'])
+
+    if error:
+        raise error
 
 
 def otp_issue(user_id: int, purpose: str) -> tuple[OneTimeCode, str | None]:
