@@ -1,13 +1,17 @@
+from django.contrib.auth import get_user_model
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
+    inline_serializer,
 )
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView as _TokenObtainPairView
 
 from apps.users.serializers.auth import (
     RegisterInputSerializer,
@@ -58,3 +62,21 @@ class RegisterView(CreateAPIView):
 
         output_serializer = RegisterOutputSerializer(instance=user)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema_view(
+    post=extend_schema(
+        tags=['Auth'],
+        summary='Получить refresh и access токены',
+        description='Принимает поле пользователя, используемого в качестве username, и пароль',
+        request=TokenObtainPairSerializer,
+        responses={
+            200: TokenObtainPairSerializer,
+            401: OpenApiResponse(description='Неверный код')
+        }
+    )
+)
+class TokenObtainPairView(_TokenObtainPairView):
+    '''
+    Представление для получения refresh и access токенов.
+    '''
