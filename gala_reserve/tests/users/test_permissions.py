@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 import pytest
-from apps.users.permissions import IsVerified, IsOwnerOrAdmin
+from apps.users.permissions import IsOwnerOrAdmin, IsVerified
 from rest_framework import status
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
@@ -45,4 +45,28 @@ class TestIsVerified:
     def test_permission(self, user, mock_view, is_email_verified, expected):
         user.is_email_verified = is_email_verified
         response = mock_view.as_view()(make_get_request(user))
+        assert response.status_code == expected
+
+
+class TestIsOwnerOrAdmin:
+    @pytest.fixture(autouse=True)
+    def _use_permission(self, mock_view):
+        mock_view.permission_classes = [IsOwnerOrAdmin]
+
+    @pytest.mark.parametrize(
+        "is_staff, pk, expected",
+        [
+            (True, 99, status.HTTP_200_OK),
+            (False, 1, status.HTTP_200_OK),
+            (True, 1, status.HTTP_200_OK),
+            (False, 2, status.HTTP_403_FORBIDDEN),
+        ],
+        ids=["admin", "owner", "admin_and_owner", "stranger"],
+    )
+    def test_permission(self, user, mock_view, is_staff, pk, expected):
+        user.is_staff = is_staff
+        user.pk = pk
+
+        response = mock_view.as_view()(make_get_request(user))
+
         assert response.status_code == expected
