@@ -10,8 +10,9 @@ from rest_framework import serializers, status
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView as _TokenObtainPairView
+from rest_framework_simplejwt.views import TokenRefreshView as _TokenRefreshView
 
 from apps.users.serializers.auth import (
     RegisterInputSerializer,
@@ -79,4 +80,22 @@ class RegisterView(CreateAPIView):
 class TokenObtainPairView(_TokenObtainPairView):
     '''
     Представление для получения refresh и access токенов.
+    '''
+
+
+@extend_schema_view(
+    post=extend_schema(
+        tags=['Auth'],
+        summary='Заменить refresh токен',
+        description='Принимает refresh и access токен и возвращает refresh токен',
+        request=TokenRefreshSerializer,
+        responses={
+            201: TokenRefreshSerializer,
+            401: OpenApiResponse(description='Неверный код')
+        }
+    )
+)
+class TokenRefreshView(_TokenRefreshView):
+    '''
+    Представление для замены refresh и access токенов по refresh токену.
     '''
