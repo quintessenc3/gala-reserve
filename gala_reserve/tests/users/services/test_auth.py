@@ -2,11 +2,22 @@ import random
 import re
 from datetime import timedelta
 
+import freezegun
 import pytest
 from apps.users.models import OneTimeCode, OneTimeCodePurpose, User
-from apps.users.services.auth import otp_issue, user_register
+from apps.users.services.auth import (
+    AlreadyVerified,
+    CodeExpiredError,
+    InvalidCodeError,
+    TooManyAttempts,
+    otp_issue,
+    user_email_verify,
+    user_register,
+)
 from django.db import IntegrityError
+from django.utils import timezone
 from pytest_mock import MockerFixture
+from rest_framework import exceptions
 
 TEST_PASSWORD = 'P@ssw0rd'
 
@@ -25,6 +36,11 @@ def user_payload():
         'first_name': 'John',
         'last_name': 'Doe'
     }
+
+
+@pytest.fixture
+def user_otp_code(user: User) -> tuple[OneTimeCode, str | None]:
+    return otp_issue(user.pk, OneTimeCodePurpose.EMAIL_VERIFICATION)
 
 
 class TestRegister:
@@ -91,3 +107,95 @@ class TestOTPIssue:
         assert old_code != code
         assert otp.is_expired == False
         assert otp.attempts == 0
+
+
+class TestUserEmailVerify:
+    def test_normal_email_verify(self, user, user_otp_code):
+        with freezegun.freeze_time('2016-09-10 12:00:00'):
+            otp, code = user_otp_code
+            user_email_verify(user_id=user.pk, code=code)
+
+            otp.refresh_from_db()
+            user.refresh_from_db()
+
+            assert otp.used_at is not None
+            assert otp.used_at == timezone.now()
+            assert user.is_email_verified == True
+
+    def test_user_does_not_exist(self, user, user_otp_code):
+        _, code = user_otp_code
+        with pytest.raises(exceptions.NotFound):
+            user_email_verify(user_id=1, code=code)
+
+    def test_user_already_verified(self, user, user_otp_code):
+        _, code = user_otp_code
+        user.is_email_verified = True
+        user.save(update_fields=['is_email_verified'])
+
+        with pytest.raises(AlreadyVerified):
+            user_email_verify(user_id=user.pk, code=code)
+
+    def test_code_does_not_exist(self, user):
+        with pytest.raises(InvalidCodeError):
+            user_email_verify(user_id=user.pk, code='000000')
+
+    def test_code_with_right_purpose_does_not_exist(self, user, user_otp_code):
+        otp, code = user_otp_code
+        otp.purpose = OneTimeCodePurpose.PASSWORD_RESET
+        otp.save(update_fields=['purpose'])
+
+        with pytest.raises(InvalidCodeError):
+            user_email_verify(user_id=user.pk, code=code)
+
+    def test_invalid_code(self, user, user_otp_code):
+        otp, _ = user_otp_code
+        with pytest.raises(InvalidCodeError):
+            user_email_verify(user_id=user.pk, code='000000')
+        otp.refresh_from_db()
+        assert otp.attempts == 1
+
+    def test_too_many_attempts(self, user, user_otp_code):
+        otp, _ = user_otp_code
+
+        for _ in range(OneTimeCode.MAX_ATTEMPTS - 1):
+            with pytest.raises(InvalidCodeError):
+                user_email_verify(user_id=user.pk, code='000000')
+
+        otp.refresh_from_db()
+        assert otp.attempts == OneTimeCode.MAX_ATTEMPTS - 1
+
+        with pytest.raises(TooManyAttempts):
+            user_email_verify(user_id=user.pk, code='000000')
+
+    def test_code_has_expired(self, user, user_otp_code):
+        otp, code = user_otp_code
+        with (
+            freezegun.freeze_time(otp.created_at + OneTimeCode.TTL_MINUTES), 
+            pytest.raises(CodeExpiredError)
+        ):
+            user_email_verify(user_id=user.pk, code=code)
+
+    def test_atomicity(self, mocker: MockerFixture, user, user_otp_code):
+        otp, code = user_otp_code
+
+        original_save = User.save
+
+        def save_then_fail(self, *args, **kwargs):
+            original_save(self, *args, **kwargs)
+            raise RuntimeError
+
+        save_mock = mocker.patch.object(
+            User, 'save', autospec=True, side_effect=save_then_fail
+        )
+
+        with pytest.raises(RuntimeError):
+            user_email_verify(user_id=user.pk, code=code)
+
+        save_mock.assert_called_once()
+
+        otp.refresh_from_db()
+        user.refresh_from_db()
+
+        assert otp.used_at is None
+        assert otp.attempts == 0
+        assert not user.is_email_verified
