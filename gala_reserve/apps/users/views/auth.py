@@ -1,24 +1,30 @@
-from django.contrib.auth import get_user_model
+import random
+
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
-    inline_serializer,
 )
-from rest_framework import serializers, status
-from rest_framework.generics import CreateAPIView
+from rest_framework import status
+from rest_framework.generics import CreateAPIView, GenericAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenRefreshSerializer,
+)
 from rest_framework_simplejwt.views import TokenObtainPairView as _TokenObtainPairView
 from rest_framework_simplejwt.views import TokenRefreshView as _TokenRefreshView
 
+from apps.core.serializers import MessageOutputSerializer
+from apps.users.models import OneTimeCode
 from apps.users.serializers.auth import (
+    EmailVerifyInputSerializer,
     RegisterInputSerializer,
     RegisterOutputSerializer,
 )
-from apps.users.services.auth import user_register
+from apps.users.services.auth import user_email_verify, user_register
 
 
 @extend_schema_view(
@@ -99,3 +105,41 @@ class TokenRefreshView(_TokenRefreshView):
     '''
     Представление для замены refresh и access токенов по refresh токену.
     '''
+
+@extend_schema_view(
+    post=extend_schema(
+        tags=['Auth'],
+        summary='Верифицировать пользователя по коду',
+        description='Верифицирует пользователя по коду, присланного на его email.',
+        request=EmailVerifyInputSerializer,
+        responses={
+            200: MessageOutputSerializer,
+            400: OpenApiResponse(description='Код неверный / истек / превышен лимит попыток'),
+            404: OpenApiResponse(description='Пользователь не найден'),
+            409: OpenApiResponse(description='Пользователь уже верифицирован')
+        },
+        examples=[
+            OpenApiExample(
+                name='Пример запроса',
+                value={
+                    'code': ''.join(random.choices('0123456789', k=OneTimeCode.CODE_LENGTH))
+                },
+                request_only=True
+            )
+        ]
+    )
+)
+class EmailVerifyView(GenericAPIView):
+    '''
+    Представление для верификации email пользователя по коду.
+    '''
+
+    serializer_class = EmailVerifyInputSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_email_verify(user_id=request.user.pk, **serializer.validated_data)
+
+        return Response({'message': 'Email успешно верифицирован'}, status=status.HTTP_200_OK)
