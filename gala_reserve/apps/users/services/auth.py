@@ -99,11 +99,11 @@ def user_email_verify(*, user_id: int, code: str):
 
         if not hmac.compare_digest(otp.code_hash, code_digest):
             otp.attempts += 1
+            otp.save(update_fields=['attempts'])
 
             if otp.is_reached_attempts_limit:
                 error = TooManyAttempts()
             else:
-                otp.save(update_fields=['attempts'])
                 error = InvalidCodeError()
 
         else:
