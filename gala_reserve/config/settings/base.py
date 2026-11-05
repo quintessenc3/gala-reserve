@@ -124,6 +124,9 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'GalaReserve - это backend-платформа для создания мероприятий и управления регистрациями с ограниченным количеством мест.',
     'VERSION': '0.1.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    }
 }
 
 SIMPLE_JWT = {
