@@ -1,7 +1,8 @@
+from django.core.validators import RegexValidator
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from apps.users.models import User
+from apps.users.models import User, OneTimeCode
 
 
 class RegisterInputSerializer(serializers.ModelSerializer):
@@ -26,3 +27,20 @@ class RegisterOutputSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'email', 'username', 'first_name', 'last_name')
         read_only_fields = fields
+
+
+class EmailVerifyInputSerializer(serializers.Serializer):
+    '''
+    Сериализатор входных данных для верификации email.
+    '''
+
+    code = serializers.CharField(
+        max_length=OneTimeCode.CODE_LENGTH, 
+        min_length=OneTimeCode.CODE_LENGTH,
+        validators=[
+            RegexValidator(
+                f'^[0-9]{{{OneTimeCode.CODE_LENGTH}}}$', 
+                message='Код должен состоять из 6 цифр.'
+            )
+        ]
+    )
