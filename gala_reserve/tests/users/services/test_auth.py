@@ -167,6 +167,9 @@ class TestUserEmailVerify:
         with pytest.raises(TooManyAttempts):
             user_email_verify(user_id=user.pk, code='000000')
 
+        otp.refresh_from_db()
+        assert otp.attempts == OneTimeCode.MAX_ATTEMPTS
+
     def test_code_has_expired(self, user, user_otp_code):
         otp, code = user_otp_code
         with (
