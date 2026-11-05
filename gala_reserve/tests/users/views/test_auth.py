@@ -1,5 +1,18 @@
-from apps.users.models import User
+import random
+from datetime import timedelta
+
+import pytest
+from apps.core import error_codes
+from apps.users.factories import UserFactory
+from apps.users.models import OneTimeCode, OneTimeCodePurpose, User
+from apps.users.services.auth import otp_issue
 from django.urls import reverse
+from django.utils import timezone
+
+
+@pytest.fixture(scope='class')
+def user_otp_code(user: User) -> tuple[OneTimeCode, str | None]:
+    return otp_issue(user.pk, OneTimeCodePurpose.EMAIL_VERIFICATION)
 
 
 class TestRegisterView:
@@ -27,3 +40,76 @@ class TestRegisterView:
         assert response.status_code == 400
         assert 'email' in response.json()['error']['details']
 
+
+class TestEmailVerifyView:
+    @pytest.fixture(autouse=True)
+    def setup(self, db, user):
+        self.user = user
+        self.otp, self.code = otp_issue(user.pk, OneTimeCodePurpose.EMAIL_VERIFICATION)
+        self.payload = {'code': self.code}
+
+    def test_success(self, auth_client):
+        response = auth_client.post(reverse('email-verify'), self.payload, format='json')
+
+        assert response.status_code == 200
+        assert User.objects.filter(is_email_verified=True).count() == 1
+        assert OneTimeCode.objects.filter(used_at__isnull=False).count() == 1
+
+    def test_requires_authentication(self, api_client):
+        response = api_client.post(reverse('email-verify'), self.payload, format='json')
+
+        assert response.status_code == 401
+        assert response.json()['error']['code'] == 'not_authenticated'
+
+    def test_invalid_code_format_returns_400(self, auth_client):
+        code = ''.join(random.choices('0123456789', k=OneTimeCode.CODE_LENGTH + 1))
+        response = auth_client.post(reverse('email-verify'), {'code': code}, format='json')
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == 'invalid'
+
+    def test_invalid_code_returns_400(self, auth_client):
+        response = auth_client.post(reverse('email-verify'), {'code': '000000'}, format='json')
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == error_codes.INVALID_CODE
+
+    def test_expired_code_returns_400(self, auth_client):
+        self.otp.created_at = timezone.now() - OneTimeCode.TTL_MINUTES - timedelta(seconds=1)
+        self.otp.save(update_fields=['created_at'])
+
+        response = auth_client.post(reverse('email-verify'), self.payload, format='json')
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == error_codes.CODE_EXPIRED
+
+    def test_too_many_attempts_returns_400(self, auth_client):
+        self.otp.attempts = OneTimeCode.MAX_ATTEMPTS - 1
+        self.otp.save(update_fields=['attempts'])
+
+        response = auth_client.post(reverse('email-verify'), {'code': '000000'}, format='json')
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == error_codes.TOO_MANY_ATTEMPTS
+
+        self.otp.refresh_from_db()
+        assert self.otp.attempts == OneTimeCode.MAX_ATTEMPTS
+
+    def test_already_verified_returns_409(self, auth_client):
+        self.user.is_email_verified = True
+        self.user.save(update_fields=['is_email_verified'])
+
+        response = auth_client.post(reverse('email-verify'), self.payload, format='json')
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.ALREADY_VERIFIED
+
+    def test_user_not_found_returns_404(self, api_client):
+        other_user = UserFactory.create()
+        api_client.force_authenticate(user=other_user)
+        other_user.delete()
+
+        response = api_client.post(reverse('email-verify'), self.payload, format='json')
+
+        assert response.status_code == 404
+        assert response.json()['error']['code'] == 'not_found'
