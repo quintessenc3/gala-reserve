@@ -7,6 +7,8 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework import status
+from rest_framework.request import Request
+from rest_framework.response import Response
 from rest_framework.generics import CreateAPIView, GenericAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -24,7 +26,7 @@ from apps.users.serializers.auth import (
     RegisterInputSerializer,
     RegisterOutputSerializer,
 )
-from apps.users.services.auth import user_email_verify, user_register
+from apps.users.services.auth import user_email_verify, user_register, otp_resend
 
 
 @extend_schema_view(
@@ -143,3 +145,25 @@ class EmailVerifyView(GenericAPIView):
         user_email_verify(user_id=request.user.pk, **serializer.validated_data)
 
         return Response({'message': 'Email успешно верифицирован'}, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=['Auth'],
+        summary='Повторно отправить код на электронную почту',
+        description='Повторно отправляет верификационный код на электронную почту.',
+        responses={
+            200: MessageOutputSerializer,
+            404: OpenApiResponse(description='Пользователь не найден')
+        }
+    )
+)
+class CodeResendView(GenericAPIView):
+    '''
+    Представление для повторной отправки письма с верификационным кодом.
+    '''
+
+    def get(self, request: Request, *args, **kwargs) -> Response:
+        otp_resend(user_id=request.user.pk)
+
+        return Response({'message': 'Код был повторно выслан на электронную почту'}, status=status.HTTP_200_OK)
