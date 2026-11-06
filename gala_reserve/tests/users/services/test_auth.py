@@ -25,15 +25,6 @@ TEST_PASSWORD = 'P@ssw0rd'
 
 
 @pytest.fixture
-def send_verification_email_mock(mocker: MockerFixture):
-    return mocker.patch('apps.users.tasks.auth.send_verification_email.delay')
-
-@pytest.fixture
-def send_password_reset_email_mock(mocker: MockerFixture):
-    return mocker.patch('apps.users.tasks.auth.send_password_reset_email.delay')
-
-
-@pytest.fixture
 def user_payload():
     return {
         'email': 'user_1@example.com',
