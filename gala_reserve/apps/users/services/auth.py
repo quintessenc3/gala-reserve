@@ -153,3 +153,24 @@ def otp_issue(user_id: int, purpose: str) -> tuple[OneTimeCode, str | None]:
             otp.save(update_fields=['code_hash', 'created_at', 'attempts'])
 
     return otp, code
+
+
+def otp_resend(*, user_id: int) -> None:
+    '''
+    Сервис для повторной отправки верификационного кода.
+    '''
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        raise exceptions.NotFound(detail='Пользователь не найден.')
+
+    if user.is_email_verified == True:
+        raise AlreadyVerified
+    
+    _, code = otp_issue(user_id=user_id, purpose=OneTimeCodePurpose.EMAIL_VERIFICATION)
+    send_verification_email.delay(
+        user.email, 
+        code,
+        int(OneTimeCode.TTL_MINUTES.total_seconds() // 60)
+    )
