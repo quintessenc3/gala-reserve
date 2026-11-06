@@ -13,6 +13,7 @@ from apps.users.services.auth import (
     otp_issue,
     user_email_verify,
     user_register,
+    otp_resend
 )
 from django.db import IntegrityError
 from django.utils import timezone
@@ -202,3 +203,24 @@ class TestUserEmailVerify:
         assert otp.used_at is None
         assert otp.attempts == 0
         assert not user.is_email_verified
+
+
+class TestOtpResend:
+    def test_normal_resend(self, user, send_verification_email_mock):
+        otp_resend(user_id=user.pk)
+        send_verification_email_mock.assert_called_once()
+
+    def test_unexisting_user_does_not_exist(self, db, send_verification_email_mock):
+        with pytest.raises(exceptions.NotFound):
+            otp_resend(user_id=-1)
+
+        send_verification_email_mock.assert_not_called()
+
+    def test_user_already_verified(self, user, send_verification_email_mock):
+        user.is_email_verified = True
+        user.save()
+
+        with pytest.raises(AlreadyVerified):
+            otp_resend(user_id=user.pk)
+
+        send_verification_email_mock.assert_not_called()
