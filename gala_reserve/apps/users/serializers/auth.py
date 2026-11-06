@@ -44,3 +44,11 @@ class EmailVerifyInputSerializer(serializers.Serializer):
             )
         ]
     )
+
+
+class RequestEmailResetCodeInputSerializer(serializers.Serializer):
+    '''
+    Сериализатор входных данных для запроса кода сброса пароля.
+    '''
+
+    email = serializers.EmailField()
