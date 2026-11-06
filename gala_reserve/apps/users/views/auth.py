@@ -26,8 +26,14 @@ from apps.users.serializers.auth import (
     EmailVerifyInputSerializer,
     RegisterInputSerializer,
     RegisterOutputSerializer,
+    RequestEmailResetCodeInputSerializer,
 )
-from apps.users.services.auth import otp_resend, user_email_verify, user_register
+from apps.users.services.auth import (
+    otp_resend,
+    user_email_verify,
+    user_register,
+    user_request_password_reset_code,
+)
 
 
 @extend_schema_view(
@@ -195,3 +201,32 @@ class LogoutView(_TokenBlacklistView):
             raise InvalidToken(e.args[0]) from e
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema_view(
+    post=extend_schema(
+        tags=['Auth'],
+        summary='Запросить код сброса пароля',
+        description='Отправляет код сброса пароля на электронную почту пользователя.',
+        request=RequestEmailResetCodeInputSerializer,
+        responses={
+            202: MessageOutputSerializer
+        }
+    )
+)
+class RequestResetCodeView(GenericAPIView):
+    '''
+    Представление для запроса сброса кода.
+    '''
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    serializer_class = RequestEmailResetCodeInputSerializer
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_request_password_reset_code(**serializer.validated_data)
+
+        return Response({'message': 'Код сброса пароля был отправлен на ваш email'}, status=status.HTTP_202_ACCEPTED)
