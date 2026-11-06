@@ -8,6 +8,7 @@ from apps.users.views.auth import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from apps.users.views.my_profile import MyProfileView
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
@@ -15,5 +16,6 @@ urlpatterns = [
     path('auth/token/', TokenObtainPairView.as_view(), name='token'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('auth/email/verify', EmailVerifyView.as_view(), name='email-verify'),
-    path('auth/email/resend', CodeResendView.as_view(), name='email-resend')
+    path('auth/email/resend', CodeResendView.as_view(), name='email-resend'),
+    path('users/me/', MyProfileView.as_view(), name='my-profile')
 ]
