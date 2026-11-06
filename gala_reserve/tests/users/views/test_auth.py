@@ -113,3 +113,37 @@ class TestEmailVerifyView:
 
         assert response.status_code == 404
         assert response.json()['error']['code'] == 'not_found'
+
+
+class TestCodeResendView:
+    def test_success(self, user, auth_client):
+        response = auth_client.get(reverse('email-resend'))
+
+        assert response.status_code == 200
+
+    def test_requires_authentication(self, api_client):
+        response = api_client.get(reverse('email-resend'))
+
+        assert response.status_code == 401
+        assert response.json()['error']['code'] == 'not_authenticated'
+
+    def test_user_not_found_returns_404(self, db, api_client):
+        other_user = UserFactory.create()
+        api_client.force_authenticate(user=other_user)
+        other_user.delete()
+
+        response = api_client.get(reverse('email-resend'))
+        
+        assert response.status_code == 404
+        assert response.json()['error']['code'] == 'not_found'
+
+    def test_already_verified_returns_409(self, user, api_client):
+        user.is_email_verified = True
+        user.save()
+
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(reverse('email-resend'))
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.ALREADY_VERIFIED
