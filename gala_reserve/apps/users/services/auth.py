@@ -10,7 +10,7 @@ from rest_framework import exceptions, status
 from apps.core import error_codes
 from apps.core.exceptions import DomainError
 from apps.users.models import OneTimeCode, OneTimeCodePurpose, User
-from apps.users.tasks.auth import send_verification_email
+from apps.users.tasks.auth import send_password_reset_email, send_verification_email
 
 
 class InvalidCodeError(DomainError):
@@ -115,6 +115,26 @@ def user_email_verify(*, user_id: int, code: str):
 
     if error:
         raise error
+
+
+def user_request_password_reset_code(*, email: str):
+    '''
+    Сервис запроса сброса пароля.
+    '''
+
+    with transaction.atomic():
+        user = User.objects.select_for_update().filter(email=email).first()
+
+        if user is not None:
+            _, code = otp_issue(user_id=user.pk, purpose=OneTimeCodePurpose.PASSWORD_RESET)
+            
+            transaction.on_commit(
+                lambda: send_password_reset_email.delay(
+                    user.email,
+                    code,
+                    int(OneTimeCode.TTL_MINUTES.total_seconds() // 60)
+                )
+            )
 
 
 def otp_issue(user_id: int, purpose: str) -> tuple[OneTimeCode, str | None]:
