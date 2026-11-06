@@ -7,15 +7,16 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework import status
-from rest_framework.request import Request
-from rest_framework.response import Response
 from rest_framework.generics import CreateAPIView, GenericAPIView
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
+from rest_framework_simplejwt.views import TokenBlacklistView as _TokenBlacklistView
 from rest_framework_simplejwt.views import TokenObtainPairView as _TokenObtainPairView
 from rest_framework_simplejwt.views import TokenRefreshView as _TokenRefreshView
 
@@ -26,7 +27,7 @@ from apps.users.serializers.auth import (
     RegisterInputSerializer,
     RegisterOutputSerializer,
 )
-from apps.users.services.auth import user_email_verify, user_register, otp_resend
+from apps.users.services.auth import otp_resend, user_email_verify, user_register
 
 
 @extend_schema_view(
@@ -167,3 +168,30 @@ class CodeResendView(GenericAPIView):
         otp_resend(user_id=request.user.pk)
 
         return Response({'message': 'Код был повторно выслан на электронную почту'}, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    post=extend_schema(
+        tags=['Auth'],
+        summary='Добавить refresh-токен в черный список',
+        description='Добавляет refresh-токен в черный список.',
+        responses={
+            204: OpenApiResponse(description='Токен добавлен в черный список'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен')
+        }
+    )
+)
+class LogoutView(_TokenBlacklistView):
+    '''
+    Представление для добавления refresh-токена в черный список.
+    '''
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self.get_serializer(data=request.data)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as e:
+            raise InvalidToken(e.args[0]) from e
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
