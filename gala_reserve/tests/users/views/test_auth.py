@@ -147,3 +147,22 @@ class TestCodeResendView:
 
         assert response.status_code == 409
         assert response.json()['error']['code'] == error_codes.ALREADY_VERIFIED
+
+
+class TestRequestResetCodeView:
+    def test_success(self, transactional_db, user, api_client, send_password_reset_email_mock):
+        payload = {'email': user.email}
+
+        response = api_client.post(reverse('password-reset-request'), payload, format='json')
+
+        assert response.status_code == 202
+        send_password_reset_email_mock.assert_called_once()
+
+    def test_unexisting_user(self, transactional_db, user, api_client, send_password_reset_email_mock):
+        payload = {'email': 'nonexistent@example.com'}
+
+        response = api_client.post(reverse('password-reset-request'), payload, format='json')
+
+        assert response.status_code == 202
+        assert OneTimeCode.objects.filter(user=user, purpose=OneTimeCodePurpose.PASSWORD_RESET).count() == 0
+        send_password_reset_email_mock.assert_not_called()
