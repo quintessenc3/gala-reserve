@@ -11,9 +11,10 @@ from apps.users.services.auth import (
     InvalidCodeError,
     TooManyAttempts,
     otp_issue,
+    otp_resend,
     user_email_verify,
     user_register,
-    otp_resend
+    user_request_password_reset_code,
 )
 from django.db import IntegrityError
 from django.utils import timezone
@@ -26,6 +27,10 @@ TEST_PASSWORD = 'P@ssw0rd'
 @pytest.fixture
 def send_verification_email_mock(mocker: MockerFixture):
     return mocker.patch('apps.users.tasks.auth.send_verification_email.delay')
+
+@pytest.fixture
+def send_password_reset_email_mock(mocker: MockerFixture):
+    return mocker.patch('apps.users.tasks.auth.send_password_reset_email.delay')
 
 
 @pytest.fixture
@@ -224,3 +229,17 @@ class TestOtpResend:
             otp_resend(user_id=user.pk)
 
         send_verification_email_mock.assert_not_called()
+
+
+class TestUserRequestPasswordResetCode:
+    def test_normal_request(self, transactional_db, user, send_password_reset_email_mock):
+        user_request_password_reset_code(email=user.email)
+        assert OneTimeCode.objects.filter(user=user, purpose=OneTimeCodePurpose.PASSWORD_RESET).exists()
+        send_password_reset_email_mock.assert_called_once()
+
+    def test_unexisting_user_does_not_exist(self, db, send_password_reset_email_mock):
+        user_request_password_reset_code(email='nonexistent@example.com')
+
+        assert OneTimeCode.objects.count() == 0
+
+        send_password_reset_email_mock.assert_not_called()
