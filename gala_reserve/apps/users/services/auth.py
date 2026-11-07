@@ -139,6 +139,37 @@ def user_request_password_reset_code(*, email: str) -> tuple[OneTimeCode, str | 
             return otp, code
         
 
+def user_reset_password_by_code(*, email: str, code: str | int, password: str) -> None:
+    '''
+    Сервис сброса пароля по коду, отправленному на электронную почту.
+    '''
+
+    with transaction.atomic():
+        user = User.objects.select_for_update().filter(email=email).first()
+        if user is None:
+            raise InvalidCodeError
+
+        try:
+            otp = OneTimeCode.objects.get(
+                user_id=user.pk,
+                purpose=OneTimeCodePurpose.PASSWORD_RESET,
+            )
+        except OneTimeCode.DoesNotExist:
+            raise InvalidCodeError
+
+        code_digest = hmac.new(
+            settings.SECRET_KEY.encode('utf-8'),
+            code.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+
+        if hmac.compare_digest(otp.code_hash, code_digest):
+            user.set_password(password)
+            user.save(update_fields=['password'])
+        else:
+            raise InvalidCodeError
+
+
 def otp_issue(user_id: int, purpose: str) -> tuple[OneTimeCode, str | None]:
     '''
     Сервис издания одноразовых ключей.
