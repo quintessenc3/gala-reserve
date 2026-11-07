@@ -40,7 +40,6 @@ def user_payload():
 def user_otp_code(user: User) -> tuple[OneTimeCode, str | None]:
     return otp_issue(user.pk, OneTimeCodePurpose.EMAIL_VERIFICATION)
 
-
 class TestRegister:
     def test_normal_register(self, transactional_db, send_verification_email_mock, user_payload):
         user = user_register(**user_payload)
@@ -275,9 +274,62 @@ class TestUserResetPasswordByCode:
         user.refresh_from_db()
         assert not user.check_password(self.new_password)
 
-    def test_wrong_code(self, user):
+    def test_invalid_code(self, user):
         with pytest.raises(InvalidCodeError):
             user_reset_password_by_code(email=user.email, code='000000', password=self.new_password)
 
+        self.otp.refresh_from_db()
+        assert self.otp.attempts == 1
+
         user.refresh_from_db()
         assert not user.check_password(self.new_password)
+
+    def test_too_many_attempts(self, user):
+        for _ in range(OneTimeCode.MAX_ATTEMPTS - 1):
+            with pytest.raises(InvalidCodeError):
+                user_reset_password_by_code(email=user.email, code='000000', password=self.new_password)
+
+        self.otp.refresh_from_db()
+        assert self.otp.attempts == OneTimeCode.MAX_ATTEMPTS - 1
+
+        with pytest.raises(TooManyAttempts):
+            user_reset_password_by_code(email=user.email, code='000000', password=self.new_password)
+
+        self.otp.refresh_from_db()
+        assert self.otp.attempts == OneTimeCode.MAX_ATTEMPTS
+
+        user.refresh_from_db()
+        assert not user.check_password(self.new_password)
+
+    def test_code_has_expired(self, user):
+        with (
+            freezegun.freeze_time(self.otp.created_at + OneTimeCode.TTL_MINUTES), 
+            pytest.raises(CodeExpiredError)
+        ):
+            user_reset_password_by_code(email=user.email, code=self.code, password=self.new_password)
+
+        user.refresh_from_db()
+        assert not user.check_password(self.new_password)
+
+    def test_atomicity(self, mocker: MockerFixture, user, user_otp_code):
+        original_save = User.save
+
+        def save_then_fail(self, *args, **kwargs):
+            original_save(self, *args, **kwargs)
+            raise RuntimeError
+
+        save_mock = mocker.patch.object(
+            User, 'save', autospec=True, side_effect=save_then_fail
+        )
+
+        with pytest.raises(RuntimeError):
+            user_reset_password_by_code(email=user.email, code=self.code, password=self.new_password)
+
+        save_mock.assert_called_once()
+
+        self.otp.refresh_from_db()
+        user.refresh_from_db()
+
+        assert self.otp.used_at is None
+        assert self.otp.attempts == 0
+        assert not user.is_email_verified
