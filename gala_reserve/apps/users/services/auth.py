@@ -69,6 +69,7 @@ def user_register(
 
 
 def user_email_verify(*, user_id: int, code: str):
+    error = None
     with transaction.atomic():
         try:
             user = User.objects.select_for_update().get(pk=user_id)
@@ -78,35 +79,10 @@ def user_email_verify(*, user_id: int, code: str):
         if user.is_email_verified:
             raise AlreadyVerified
 
-        try:
-            otp = OneTimeCode.objects.select_for_update().get(
-                user_id=user_id,
-                purpose=OneTimeCodePurpose.EMAIL_VERIFICATION,
-            )
-        except OneTimeCode.DoesNotExist:
-            raise InvalidCodeError
-
-        if otp.is_expired == True:
-            raise CodeExpiredError
-
-        code_digest = hmac.new(
-            settings.SECRET_KEY.encode('utf-8'),
-            code.encode('utf-8'),
-            hashlib.sha256
-        ).hexdigest()
-
-        error = None
-
-        if not hmac.compare_digest(otp.code_hash, code_digest):
-            otp.attempts += 1
-            otp.save(update_fields=['attempts'])
-
-            if otp.is_reached_attempts_limit:
-                error = TooManyAttempts()
-            else:
-                error = InvalidCodeError()
-
-        else:
+        otp = _get_otp(user_id=user_id, purpose=OneTimeCodePurpose.EMAIL_VERIFICATION, used_at__isnull=True)
+        error = _validate_otp(otp=otp, code=code)
+            
+        if error is None:
             otp.used_at = timezone.now()
             otp.save(update_fields=['used_at'])
 
@@ -144,30 +120,21 @@ def user_reset_password_by_code(*, email: str, code: str | int, password: str) -
     Сервис сброса пароля по коду, отправленному на электронную почту.
     '''
 
+    error = None
     with transaction.atomic():
         user = User.objects.select_for_update().filter(email=email).first()
         if user is None:
             raise InvalidCodeError
 
-        try:
-            otp = OneTimeCode.objects.get(
-                user_id=user.pk,
-                purpose=OneTimeCodePurpose.PASSWORD_RESET,
-            )
-        except OneTimeCode.DoesNotExist:
-            raise InvalidCodeError
+        otp = _get_otp(user_id=user.pk, purpose=OneTimeCodePurpose.PASSWORD_RESET, used_at__isnull=True)
+        error = _validate_otp(otp=otp, code=code)
 
-        code_digest = hmac.new(
-            settings.SECRET_KEY.encode('utf-8'),
-            code.encode('utf-8'),
-            hashlib.sha256
-        ).hexdigest()
-
-        if hmac.compare_digest(otp.code_hash, code_digest):
+        if error is None:
             user.set_password(password)
             user.save(update_fields=['password'])
-        else:
-            raise InvalidCodeError
+
+    if error:
+        raise error
 
 
 def otp_issue(user_id: int, purpose: str) -> tuple[OneTimeCode, str | None]:
@@ -227,3 +194,44 @@ def otp_resend(*, user_id: int) -> None:
         code,
         int(OneTimeCode.TTL_MINUTES.total_seconds() // 60)
     )
+
+
+def _get_otp(**kwargs):
+    '''
+    Сервис для извлечения одноразового кода.
+    '''
+
+    try:
+        otp = OneTimeCode.objects.select_for_update().get(**kwargs)
+    except OneTimeCode.DoesNotExist:
+        raise InvalidCodeError
+
+    return otp
+
+
+def _validate_otp(*, otp: OneTimeCode, code: str):
+    '''
+    Сервис для валидации одноразового кода.
+    '''
+    
+    if otp.is_expired == True:
+        raise CodeExpiredError
+
+    code_digest = hmac.new(
+        settings.SECRET_KEY.encode('utf-8'),
+        code.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+
+    error = None
+
+    if not hmac.compare_digest(otp.code_hash, code_digest):
+        otp.attempts += 1
+        otp.save(update_fields=['attempts'])
+
+        if otp.is_reached_attempts_limit:
+            error = TooManyAttempts()
+        else:
+            error = InvalidCodeError()
+
+    return error
