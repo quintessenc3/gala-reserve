@@ -117,7 +117,7 @@ def user_email_verify(*, user_id: int, code: str):
         raise error
 
 
-def user_request_password_reset_code(*, email: str):
+def user_request_password_reset_code(*, email: str) -> tuple[OneTimeCode, str | None]:
     '''
     Сервис запроса сброса пароля.
     '''
@@ -126,7 +126,7 @@ def user_request_password_reset_code(*, email: str):
         user = User.objects.select_for_update().filter(email=email).first()
 
         if user is not None:
-            _, code = otp_issue(user_id=user.pk, purpose=OneTimeCodePurpose.PASSWORD_RESET)
+            otp, code = otp_issue(user_id=user.pk, purpose=OneTimeCodePurpose.PASSWORD_RESET)
             
             transaction.on_commit(
                 lambda: send_password_reset_email.delay(
@@ -136,6 +136,8 @@ def user_request_password_reset_code(*, email: str):
                 )
             )
 
+            return otp, code
+        
 
 def otp_issue(user_id: int, purpose: str) -> tuple[OneTimeCode, str | None]:
     '''
