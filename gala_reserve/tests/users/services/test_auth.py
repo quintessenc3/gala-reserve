@@ -1,4 +1,3 @@
-import random
 import re
 from datetime import timedelta
 
@@ -10,6 +9,7 @@ from apps.users.services.auth import (
     CodeExpiredError,
     InvalidCodeError,
     TooManyAttempts,
+    _revoke_all_refresh_tokens,
     otp_issue,
     otp_resend,
     user_email_verify,
@@ -21,6 +21,9 @@ from django.db import IntegrityError
 from django.utils import timezone
 from pytest_mock import MockerFixture
 from rest_framework import exceptions
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
 TEST_PASSWORD = 'P@ssw0rd'
 
@@ -240,10 +243,24 @@ class TestUserResetPasswordByCode:
     new_password = 'HardP@ssw0rd'
     
     @pytest.fixture(autouse=True)
-    def setup(self, user):
+    def setup(self, user, other_user):
         self.otp, self.code = user_request_password_reset_code(email=user.email)
+        self.user_tokens = [RefreshToken.for_user(user) for _ in range(2)]
+        self.user_jtis = {str(t['jti']) for t in self.user_tokens}
+        RefreshToken.for_user(other_user)
+
+    @staticmethod
+    def blacklisted_jtis() -> set[str]:
+        return set(BlacklistedToken.objects.values_list('token__jti', flat=True))
+
+    def assert_tokens_revoked(self):
+        assert self.blacklisted_jtis() == self.user_jtis
+
+    def assert_tokens_not_revoked(self):
+        assert self.blacklisted_jtis() == set()
 
     def test_normal_reset(self, user):
+        assert BlacklistedToken.objects.count() == 0
         assert not user.check_password(self.new_password)
 
         user_reset_password_by_code(email=user.email, code=self.code, password=self.new_password)
@@ -252,6 +269,11 @@ class TestUserResetPasswordByCode:
         assert user.check_password(self.new_password)
         self.otp.refresh_from_db()
         assert self.otp.used_at is not None
+
+        self.assert_tokens_revoked()
+        for token in self.user_tokens:
+            with pytest.raises(TokenError):
+                RefreshToken(str(token))
 
     def test_user_does_not_exist(self, user):
         with pytest.raises(InvalidCodeError):
@@ -277,6 +299,7 @@ class TestUserResetPasswordByCode:
 
         user.refresh_from_db()
         assert not user.check_password(self.new_password)
+        self.assert_tokens_not_revoked()
 
     def test_invalid_code(self, user):
         with pytest.raises(InvalidCodeError):
@@ -289,6 +312,7 @@ class TestUserResetPasswordByCode:
         assert not user.check_password(self.new_password)
         self.otp.refresh_from_db()
         assert self.otp.used_at is None
+        self.assert_tokens_not_revoked()
 
     def test_too_many_attempts(self, user):
         for _ in range(OneTimeCode.MAX_ATTEMPTS - 1):
@@ -307,8 +331,8 @@ class TestUserResetPasswordByCode:
 
         user.refresh_from_db()
         assert not user.check_password(self.new_password)
+        self.assert_tokens_not_revoked()
         
-
     def test_code_has_expired(self, user):
         with (
             freezegun.freeze_time(self.otp.created_at + OneTimeCode.TTL_MINUTES), 
@@ -320,26 +344,40 @@ class TestUserResetPasswordByCode:
         assert not user.check_password(self.new_password)
         self.otp.refresh_from_db()
         assert self.otp.used_at is None
+        self.assert_tokens_not_revoked()
 
-    def test_atomicity(self, mocker: MockerFixture, user, user_otp_code):
-        original_save = User.save
+    def test_atomicity(self, mocker: MockerFixture, user):
+        original_revoke = _revoke_all_refresh_tokens
 
-        def save_then_fail(self, *args, **kwargs):
-            original_save(self, *args, **kwargs)
+        def revoke_then_fail(*args, **kwargs):
+            original_revoke(*args, **kwargs)
             raise RuntimeError
 
-        save_mock = mocker.patch.object(
-            User, 'save', autospec=True, side_effect=save_then_fail
+        mocker.patch(
+            'apps.users.services.auth._revoke_all_refresh_tokens',
+            side_effect=revoke_then_fail,
         )
 
         with pytest.raises(RuntimeError):
             user_reset_password_by_code(email=user.email, code=self.code, password=self.new_password)
-
-        save_mock.assert_called_once()
 
         self.otp.refresh_from_db()
         user.refresh_from_db()
 
         assert self.otp.used_at is None
         assert self.otp.attempts == 0
-        assert not user.is_email_verified
+        assert not user.check_password(self.new_password)
+        self.assert_tokens_not_revoked()
+
+
+class TestRevokeAllRefreshTokens:
+    def test_normal_revoke(self, user, other_user):
+        user_tokens = [RefreshToken.for_user(user) for _ in range(2)]
+        RefreshToken.for_user(other_user)
+
+        _revoke_all_refresh_tokens(user=user)
+
+        revoked_jtis = set(BlacklistedToken.objects.values_list('token__jti', flat=True))
+        user_tokens_jtis = {str(t['jti']) for t in user_tokens}
+
+        assert revoked_jtis == user_tokens_jtis
