@@ -157,11 +157,7 @@ def otp_issue(user_id: int, purpose: str) -> tuple[OneTimeCode, str | None]:
         )
 
         code = ''.join(random.choices('0123456789', k=OneTimeCode.CODE_LENGTH))
-        code_hash = hmac.new(
-            settings.SECRET_KEY.encode('utf-8'),
-            code.encode('utf-8'),
-            hashlib.sha256
-        ).hexdigest()
+        code_hash = _code_to_hex_digest(code=code)
 
         if otp is None:
             otp = OneTimeCode.objects.create(user_id=user_id, purpose=purpose, code_hash=code_hash)
@@ -217,11 +213,7 @@ def _validate_otp(*, otp: OneTimeCode, code: str):
     if otp.is_expired == True:
         raise CodeExpiredError
 
-    code_digest = hmac.new(
-        settings.SECRET_KEY.encode('utf-8'),
-        code.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest()
+    code_digest = _code_to_hex_digest(code=code)
 
     error = None
 
@@ -235,3 +227,15 @@ def _validate_otp(*, otp: OneTimeCode, code: str):
             error = InvalidCodeError()
 
     return error
+
+
+def _code_to_hex_digest(*, code: str) -> str:
+    '''
+    Сервис для конвертации кода в хэш.
+    '''
+
+    return hmac.new(
+        settings.SECRET_KEY.encode('utf-8'),
+        code.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
