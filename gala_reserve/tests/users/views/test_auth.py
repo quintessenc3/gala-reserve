@@ -5,9 +5,11 @@ import pytest
 from apps.core import error_codes
 from apps.users.factories import UserFactory
 from apps.users.models import OneTimeCode, OneTimeCodePurpose, User
-from apps.users.services.auth import otp_issue
+from apps.users.services.auth import otp_issue, user_request_password_reset_code
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 @pytest.fixture(scope='class')
@@ -166,3 +168,77 @@ class TestRequestResetCodeView:
         assert response.status_code == 202
         assert OneTimeCode.objects.filter(user=user, purpose=OneTimeCodePurpose.PASSWORD_RESET).count() == 0
         send_password_reset_email_mock.assert_not_called()
+
+
+class TestPasswordResetByCodeView:
+    @pytest.fixture(autouse=True)
+    def setup(self, user):
+        self.otp, self.code = user_request_password_reset_code(email=user.email)
+        self.new_password = 'NewP@ssw0rd'
+        self.payload = {'email': user.email, 'code': self.code, 'password': self.new_password}
+        self.refresh = RefreshToken.for_user(user)
+
+    def test_success(self, user, api_client):
+        assert not user.check_password(self.new_password)
+        response = api_client.post(reverse('password-reset-confirm'), self.payload, format='json')
+
+        assert response.status_code == 200
+
+        user.refresh_from_db()
+        assert user.check_password(self.new_password)
+        assert BlacklistedToken.objects.filter(token__jti=str(self.refresh['jti'])).exists()
+
+
+    def test_user_does_not_exist(self, user, api_client):
+        payload = {**self.payload, 'email': 'nonexistent@example.com'}
+        response = api_client.post(reverse('password-reset-confirm'), payload, format='json')
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == error_codes.INVALID_CODE
+
+        user.refresh_from_db()
+        assert not user.check_password(self.new_password)
+
+    def test_invalid_code_format_returns_400(self, api_client):
+        code = ''.join(random.choices('0123456789', k=OneTimeCode.CODE_LENGTH + 1))
+        payload = {**self.payload, 'code': code}
+        response = api_client.post(reverse('password-reset-confirm'), payload, format='json')
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == 'invalid'
+
+    def test_invalid_code_returns_400(self, user, api_client):
+        payload = {**self.payload, 'code': '000000'}
+        response = api_client.post(reverse('password-reset-confirm'), payload, format='json')
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == error_codes.INVALID_CODE
+        user.refresh_from_db()
+        assert not user.check_password(self.new_password)
+        
+
+    def test_expired_code_returns_400(self, user, api_client):
+        self.otp.created_at = timezone.now() - OneTimeCode.TTL_MINUTES - timedelta(seconds=1)
+        self.otp.save(update_fields=['created_at'])
+
+        response = api_client.post(reverse('password-reset-confirm'), self.payload, format='json')
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == error_codes.CODE_EXPIRED
+        user.refresh_from_db()
+        assert not user.check_password(self.new_password)
+
+    def test_too_many_attempts_returns_400(self, user, api_client):
+        payload = {**self.payload, 'code': '000000'}
+        self.otp.attempts = OneTimeCode.MAX_ATTEMPTS - 1
+        self.otp.save(update_fields=['attempts'])
+
+        response = api_client.post(reverse('password-reset-confirm'), payload, format='json')
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == error_codes.TOO_MANY_ATTEMPTS
+
+        self.otp.refresh_from_db()
+        assert self.otp.attempts == OneTimeCode.MAX_ATTEMPTS
+        user.refresh_from_db()
+        assert not user.check_password(self.new_password)
