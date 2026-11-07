@@ -1,8 +1,8 @@
-from django.core.validators import RegexValidator
 from django.contrib.auth.password_validation import validate_password
+from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from apps.users.models import User, OneTimeCode
+from apps.users.models import OneTimeCode, User
 
 
 class RegisterInputSerializer(serializers.ModelSerializer):
@@ -43,3 +43,13 @@ class RequestEmailResetCodeInputSerializer(serializers.Serializer):
     '''
 
     email = serializers.EmailField()
+
+
+class PasswordResetByCodeInputSerializer(serializers.Serializer):
+    '''
+    Сериализатор входных данных для сброса пароля по коду.
+    '''
+
+    email = serializers.EmailField()
+    code = serializers.CharField(validators=[RegexValidator(OneTimeCode.CODE_REGEX)])
+    password = serializers.CharField(validators=[validate_password])
