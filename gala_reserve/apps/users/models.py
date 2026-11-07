@@ -71,6 +71,7 @@ class OneTimeCode(models.Model):
     MAX_ATTEMPTS = 5
     RESEND_COOLDOWN_SECONDS = timedelta(seconds=60)
     CODE_LENGTH = 6
+    CODE_REGEX = f'^[0-9]{{{CODE_LENGTH}}}$'
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,)
     purpose = models.CharField('Назначение', max_length=32, choices=OneTimeCodePurpose.choices)
