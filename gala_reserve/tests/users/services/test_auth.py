@@ -250,6 +250,8 @@ class TestUserResetPasswordByCode:
 
         user.refresh_from_db()
         assert user.check_password(self.new_password)
+        self.otp.refresh_from_db()
+        assert self.otp.used_at is not None
 
     def test_user_does_not_exist(self, user):
         with pytest.raises(InvalidCodeError):
@@ -261,6 +263,8 @@ class TestUserResetPasswordByCode:
 
         user.refresh_from_db()
         assert not user.check_password(self.new_password)
+        self.otp.refresh_from_db()
+        assert self.otp.used_at is None
 
     def test_code_does_not_exist(self, user):
         self.otp.delete()
@@ -283,6 +287,8 @@ class TestUserResetPasswordByCode:
 
         user.refresh_from_db()
         assert not user.check_password(self.new_password)
+        self.otp.refresh_from_db()
+        assert self.otp.used_at is None
 
     def test_too_many_attempts(self, user):
         for _ in range(OneTimeCode.MAX_ATTEMPTS - 1):
@@ -297,9 +303,11 @@ class TestUserResetPasswordByCode:
 
         self.otp.refresh_from_db()
         assert self.otp.attempts == OneTimeCode.MAX_ATTEMPTS
+        assert self.otp.used_at is None
 
         user.refresh_from_db()
         assert not user.check_password(self.new_password)
+        
 
     def test_code_has_expired(self, user):
         with (
@@ -310,6 +318,8 @@ class TestUserResetPasswordByCode:
 
         user.refresh_from_db()
         assert not user.check_password(self.new_password)
+        self.otp.refresh_from_db()
+        assert self.otp.used_at is None
 
     def test_atomicity(self, mocker: MockerFixture, user, user_otp_code):
         original_save = User.save
