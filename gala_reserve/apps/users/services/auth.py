@@ -6,6 +6,8 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import exceptions, status
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 
 from apps.core import error_codes
 from apps.core.exceptions import DomainError
@@ -136,6 +138,8 @@ def user_reset_password_by_code(*, email: str, code: str | int, password: str) -
             user.set_password(password)
             user.save(update_fields=['password'])
 
+            _revoke_all_refresh_tokens(user=user)
+
     if error:
         raise error
 
@@ -242,3 +246,20 @@ def _code_to_hex_digest(*, code: str) -> str:
         code.encode('utf-8'),
         hashlib.sha256
     ).hexdigest()
+
+
+def _revoke_all_refresh_tokens(*, user: User) -> None:
+    '''
+    Сервис для отзыва всех refresh-токенов пользователя.
+    '''
+
+    with transaction.atomic():
+        user = User.objects.select_for_update().filter(pk=user.pk).first()
+
+        tokens = OutstandingToken.objects.filter(
+            user_id=user.pk, 
+            expires_at__gt=timezone.now()
+        )
+
+        for token in tokens:
+            RefreshToken(token.token).blacklist()
