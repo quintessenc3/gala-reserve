@@ -4,6 +4,7 @@ from apps.users.views.auth import (
     CodeResendView,
     EmailVerifyView,
     LogoutView,
+    PasswordResetByCodeView,
     RegisterView,
     RequestResetCodeView,
     TokenObtainPairView,
@@ -19,5 +20,6 @@ urlpatterns = [
     path('auth/email/verify', EmailVerifyView.as_view(), name='email-verify'),
     path('auth/email/resend', CodeResendView.as_view(), name='email-resend'),
     path('auth/password-reset/request', RequestResetCodeView.as_view(), name='password-reset-request'),
+    path('auth/password-reset/confirm', PasswordResetByCodeView.as_view(), name='password-reset-confirm'),
     path('users/me/', MyProfileView.as_view(), name='my-profile')
 ]

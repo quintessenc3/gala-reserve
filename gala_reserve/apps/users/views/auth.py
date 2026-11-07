@@ -24,6 +24,7 @@ from apps.core.serializers import MessageOutputSerializer
 from apps.users.models import OneTimeCode
 from apps.users.serializers.auth import (
     EmailVerifyInputSerializer,
+    PasswordResetByCodeInputSerializer,
     RegisterInputSerializer,
     RegisterOutputSerializer,
     RequestEmailResetCodeInputSerializer,
@@ -33,6 +34,7 @@ from apps.users.services.auth import (
     user_email_verify,
     user_register,
     user_request_password_reset_code,
+    user_reset_password_by_code,
 )
 
 
@@ -230,3 +232,33 @@ class RequestResetCodeView(GenericAPIView):
         user_request_password_reset_code(**serializer.validated_data)
 
         return Response({'message': 'Код сброса пароля был отправлен на ваш email'}, status=status.HTTP_202_ACCEPTED)
+
+
+@extend_schema_view(
+    post=extend_schema(
+        tags=['Auth'],
+        summary='Сбросить пароль по коду',
+        description='Сбрасывает пароль пользователя по коду, присланному на его email.',
+        request=PasswordResetByCodeInputSerializer,
+        responses={
+            200: MessageOutputSerializer,
+            400: OpenApiResponse(description='Код неверный / истек / превышен лимит попыток')
+        }
+    )
+)
+class PasswordResetByCodeView(GenericAPIView):
+    '''
+    Представление для сброса пароля по коду.
+    '''
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    serializer_class = PasswordResetByCodeInputSerializer
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_reset_password_by_code(**serializer.validated_data)
+
+        return Response({'message': 'Пароль успешно сброшен'}, status=status.HTTP_200_OK)
