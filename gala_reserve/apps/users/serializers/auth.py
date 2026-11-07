@@ -34,16 +34,7 @@ class EmailVerifyInputSerializer(serializers.Serializer):
     Сериализатор входных данных для верификации email.
     '''
 
-    code = serializers.CharField(
-        max_length=OneTimeCode.CODE_LENGTH, 
-        min_length=OneTimeCode.CODE_LENGTH,
-        validators=[
-            RegexValidator(
-                f'^[0-9]{{{OneTimeCode.CODE_LENGTH}}}$', 
-                message='Код должен состоять из 6 цифр.'
-            )
-        ]
-    )
+    code = serializers.CharField(validators=[RegexValidator(OneTimeCode.CODE_REGEX)])
 
 
 class RequestEmailResetCodeInputSerializer(serializers.Serializer):
