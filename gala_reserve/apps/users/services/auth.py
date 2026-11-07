@@ -6,8 +6,8 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import exceptions, status
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.core import error_codes
 from apps.core.exceptions import DomainError
@@ -37,6 +37,12 @@ class AlreadyVerified(DomainError):
     code = error_codes.ALREADY_VERIFIED
     message = 'Этот пользователь уже верифицирован.'
     http_status = status.HTTP_409_CONFLICT
+
+
+class PasswordsDoNotMatch(DomainError):
+    code = error_codes.PASSWORDS_DO_NOT_MATCH
+    message = 'Пароли не совпадают.'
+    http_status = status.HTTP_400_BAD_REQUEST
 
 
 def user_register(
@@ -142,6 +148,27 @@ def user_reset_password_by_code(*, email: str, code: str | int, password: str) -
 
     if error:
         raise error
+
+
+def user_reset_password_by_old_password(*, user_id: int, old_password: str, new_password: str) -> User:
+    '''
+    Сервис сброса пароля по старому паролю.
+    '''
+
+    with transaction.atomic():
+        user = User.objects.select_for_update().filter(pk=user_id).first()
+        if user is None:
+            raise exceptions.NotFound(detail='Пользователь не найден.')
+
+        if not user.check_password(old_password):
+            raise PasswordsDoNotMatch
+
+        user.set_password(new_password)
+        user.save(update_fields=['password'])
+
+        _revoke_all_refresh_tokens(user=user)
+
+    return user
 
 
 def otp_issue(user_id: int, purpose: str) -> tuple[OneTimeCode, str | None]:
