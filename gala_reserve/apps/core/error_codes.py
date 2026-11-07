@@ -3,6 +3,7 @@ CODE_EXPIRED = 'code_expired'
 TOO_MANY_ATTEMPTS = 'too_many_attempts'
 ALREADY_VERIFIED = 'already_verified'
 RESEND_COOLDOWN = 'resend_cooldown'
+PASSWORDS_DO_NOT_MATCH = 'passwords_do_not_match'
 
 EVENT_NOT_EDITABLE = 'event_not_editable'
 EVENT_NOT_PUBLISHABLE = 'event_not_publishable'
