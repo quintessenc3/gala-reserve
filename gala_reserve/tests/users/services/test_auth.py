@@ -8,6 +8,7 @@ from apps.users.services.auth import (
     AlreadyVerified,
     CodeExpiredError,
     InvalidCodeError,
+    PasswordsDoNotMatch,
     TooManyAttempts,
     _revoke_all_refresh_tokens,
     otp_issue,
@@ -16,6 +17,7 @@ from apps.users.services.auth import (
     user_register,
     user_request_password_reset_code,
     user_reset_password_by_code,
+    user_reset_password_by_old_password,
 )
 from django.db import IntegrityError
 from django.utils import timezone
@@ -381,3 +383,84 @@ class TestRevokeAllRefreshTokens:
         user_tokens_jtis = {str(t['jti']) for t in user_tokens}
 
         assert revoked_jtis == user_tokens_jtis
+
+
+class TestUserResetPasswordByOldPassword:
+    old_password = 'OldP@ssw0rd'
+    new_password = 'NewP@ssw0rd'
+
+    @pytest.fixture(autouse=True)
+    def setup(self, user):
+        user.set_password(self.old_password)
+        user.save(update_fields=['password'])
+        self.user = user
+        self.user_tokens = [RefreshToken.for_user(user) for _ in range(2)]
+
+    def assert_all_tokens_revoked(self):
+        revoked_jtis = set(BlacklistedToken.objects.values_list('token__jti', flat=True))
+        user_tokens_jtis = {str(t['jti']) for t in self.user_tokens}
+
+        assert revoked_jtis == user_tokens_jtis
+
+    def assert_password_changed(self):
+        self.user.refresh_from_db()
+        assert not self.user.check_password(self.old_password)
+        assert self.user.check_password(self.new_password)
+
+    def assert_password_not_changed(self):
+        self.user.refresh_from_db()
+        assert self.user.check_password(self.old_password)
+        assert not self.user.check_password(self.new_password)
+
+    def test_normal_reset(self):
+        self.assert_password_not_changed()
+
+        user_reset_password_by_old_password(
+            user_id=self.user.pk, 
+            old_password=self.old_password, 
+            new_password=self.new_password
+        )
+
+        self.assert_password_changed()
+
+    def test_not_existing_user(self):
+        with pytest.raises(exceptions.NotFound):
+            user_reset_password_by_old_password(
+                user_id=-1, 
+                old_password=self.old_password, 
+                new_password=self.new_password
+            )
+
+        self.assert_password_not_changed()
+
+    def test_old_password_does_not_match(self):
+        with pytest.raises(PasswordsDoNotMatch):
+            user_reset_password_by_old_password(
+                user_id=self.user.pk, 
+                old_password='WrongOldPassword', 
+                new_password=self.new_password
+            )
+
+        self.assert_password_not_changed()
+
+    def test_atomicity(self, mocker):
+        old = _revoke_all_refresh_tokens
+
+        def revoke_then_fail(*args, **kwargs):
+            old(*args, **kwargs)
+            raise RuntimeError
+
+        mocker.patch(
+            'apps.users.services.auth._revoke_all_refresh_tokens',
+            side_effect=revoke_then_fail,
+        )
+
+        with pytest.raises(RuntimeError):
+            user_reset_password_by_old_password(
+                user_id=self.user.pk, 
+                old_password=self.old_password, 
+                new_password=self.new_password
+            )
+
+        assert BlacklistedToken.objects.count() == 0
+        self.assert_password_not_changed()
