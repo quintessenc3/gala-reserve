@@ -242,3 +242,48 @@ class TestPasswordResetByCodeView:
         assert self.otp.attempts == OneTimeCode.MAX_ATTEMPTS
         user.refresh_from_db()
         assert not user.check_password(self.new_password)
+
+
+class TestPasswordResetByOldPasswordView:
+    @pytest.fixture(autouse=True)
+    def setup(self, user):
+        old_password = 'OldP@ssw0rd'
+        user.set_password(old_password)
+        user.save(update_fields=['password'])
+        self.payload = {'old_password': old_password, 'new_password': 'NewP@ssw0rd'}
+
+    def test_success(self, user, auth_client):
+        for _ in range(2):
+            RefreshToken.for_user(user)
+        assert BlacklistedToken.objects.filter(token__user=user).count() == 0
+
+        assert user.check_password(self.payload['old_password'])
+        assert not user.check_password(self.payload['new_password'])
+        response = auth_client.post(reverse('my-profile-password-reset'), self.payload, format='json')
+
+        assert response.status_code == 200
+        assert response.json()['message'] == 'Пароль успешно сброшен'
+        user.refresh_from_db()
+        assert user.check_password(self.payload['new_password'])
+        assert not user.check_password(self.payload['old_password']) 
+        assert BlacklistedToken.objects.filter(token__user=user).count() == 2
+
+    def test_requires_authentication(self, api_client):
+        response = api_client.post(reverse('my-profile-password-reset'), self.payload, format='json')
+
+        assert response.status_code == 401
+        assert response.json()['error']['code'] == 'not_authenticated'
+
+    def test_user_not_found_returns_404(self, user, auth_client):
+        user.delete()
+        response = auth_client.post(reverse('my-profile-password-reset'), self.payload, format='json')
+
+        assert response.status_code == 404
+        assert response.json()['error']['code'] == 'not_found'
+
+    def test_incorrect_old_password_returns_400(self, auth_client):
+        payload = {**self.payload, 'old_password': 'IncorrectOldPassword'}
+        response = auth_client.post(reverse('my-profile-password-reset'), payload, format='json')
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == error_codes.PASSWORDS_DO_NOT_MATCH
