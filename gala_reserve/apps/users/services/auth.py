@@ -130,6 +130,9 @@ def user_reset_password_by_code(*, email: str, code: str | int, password: str) -
         error = _validate_otp(otp=otp, code=code)
 
         if error is None:
+            otp.used_at = timezone.now()
+            otp.save(update_fields=['used_at'])
+            
             user.set_password(password)
             user.save(update_fields=['password'])
 
