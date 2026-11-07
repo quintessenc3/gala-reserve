@@ -1,3 +1,4 @@
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers, validators
 
 from apps.users.models import User
@@ -32,3 +33,12 @@ class MyProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('first_name', 'last_name', 'username', 'bio')
+
+
+class PasswordResetByOldPasswordInputSerializer(serializers.Serializer):
+    '''
+    Сериализатор входных данных для сброса пароля по старому паролю.
+    '''
+
+    old_password = serializers.CharField()
+    new_password = serializers.CharField(validators=[validate_password])
