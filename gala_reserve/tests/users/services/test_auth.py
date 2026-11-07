@@ -15,6 +15,7 @@ from apps.users.services.auth import (
     user_email_verify,
     user_register,
     user_request_password_reset_code,
+    user_reset_password_by_code,
 )
 from django.db import IntegrityError
 from django.utils import timezone
@@ -234,3 +235,49 @@ class TestUserRequestPasswordResetCode:
         assert OneTimeCode.objects.count() == 0
 
         send_password_reset_email_mock.assert_not_called()
+
+
+class TestUserResetPasswordByCode:
+    new_password = 'HardP@ssw0rd'
+    
+    @pytest.fixture(autouse=True)
+    def setup(self, user):
+        self.otp, self.code = user_request_password_reset_code(email=user.email)
+
+    def test_normal_reset(self, user):
+        assert not user.check_password(self.new_password)
+
+        user_reset_password_by_code(email=user.email, code=self.code, password=self.new_password)
+
+        user.refresh_from_db()
+        assert user.check_password(self.new_password)
+
+    def test_user_does_not_exist(self, user):
+        with pytest.raises(InvalidCodeError):
+            user_reset_password_by_code(
+                email='nonexistent@example.com', 
+                code=self.code, 
+                password=self.new_password
+            )
+
+        user.refresh_from_db()
+        assert not user.check_password(self.new_password)
+
+    def test_code_does_not_exist(self, user):
+        self.otp.delete()
+        with pytest.raises(InvalidCodeError):
+            user_reset_password_by_code(
+                email=user.email, 
+                code=self.code, 
+                password=self.new_password
+            )
+
+        user.refresh_from_db()
+        assert not user.check_password(self.new_password)
+
+    def test_wrong_code(self, user):
+        with pytest.raises(InvalidCodeError):
+            user_reset_password_by_code(email=user.email, code='000000', password=self.new_password)
+
+        user.refresh_from_db()
+        assert not user.check_password(self.new_password)
