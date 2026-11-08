@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 from apps.users.factories import UserFactory
 from pytest_mock import MockerFixture
@@ -40,3 +42,8 @@ def send_verification_email_mock(mocker: MockerFixture):
 @pytest.fixture
 def send_password_reset_email_mock(mocker: MockerFixture):
     return mocker.patch('apps.users.tasks.auth.send_password_reset_email.delay')
+
+
+@pytest.fixture
+def serializer_context(user):
+    return {'request': SimpleNamespace(user=user)}
