@@ -1,10 +1,11 @@
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework.filters import SearchFilter
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView
+from rest_framework.mixins import UpdateModelMixin
 
 from apps.events.models import Category
 from apps.events.serializers.categories import (
-    CategoryCreateSerializer,
+    CategoryInputSerializer,
     CategoryOutputSerializer,
 )
 from apps.users.permissions import IsVerified
@@ -21,7 +22,7 @@ from apps.users.permissions import IsVerified
         tags=['Categories'],
         summary='Создать категорию',
         description='Создает категорию',
-        request=CategoryCreateSerializer
+        request=CategoryInputSerializer
     )
 )
 class ListCreateCategoryView(ListCreateAPIView):
@@ -44,4 +45,4 @@ class ListCreateCategoryView(ListCreateAPIView):
         if self.request.method == 'GET':
             return CategoryOutputSerializer
         elif self.request.method == 'POST':
-            return CategoryCreateSerializer
+            return CategoryInputSerializer
