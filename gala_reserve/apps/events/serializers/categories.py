@@ -16,10 +16,12 @@ class CategoryOutputSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'description', 'events_count')
 
 
-class CategoryCreateSerializer(serializers.ModelSerializer):
+class CategoryInputSerializer(serializers.ModelSerializer):
     '''
     Сериализатор входных данных для создания категории.
     '''
+
+    created_by = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = Category
