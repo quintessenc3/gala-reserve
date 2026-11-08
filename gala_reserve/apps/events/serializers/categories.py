@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from apps.events.models import Category
 
@@ -13,3 +14,23 @@ class CategoryOutputSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('id', 'name', 'description', 'events_count')
+
+
+class CategoryCreateSerializer(serializers.ModelSerializer):
+    '''
+    Сериализатор входных данных для создания категории.
+    '''
+
+    class Meta:
+        model = Category
+        fields = ('name', 'description', 'created_by')
+        extra_kwargs = {
+            'name': {
+                'validators': [
+                    UniqueValidator(
+                        queryset=(Category.objects.all()),
+                        lookup='iexact'
+                    )
+                ]
+            }
+        }
