@@ -15,7 +15,7 @@ class Category(models.Model):
 
     name = models.CharField('Название категории', max_length=100)
     description = models.TextField('Описание категории')
-    created_by = models.ForeignKey(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.SET_NULL, 
         null=True, 
