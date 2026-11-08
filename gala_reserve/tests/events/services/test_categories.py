@@ -6,7 +6,7 @@ from apps.events.services.categories import CategoryInUseError, category_delete
 class TestCategoryDelete:
     @pytest.fixture(autouse=True)
     def setup(self, user):
-        self.category = CategoryFactory.create(created_by=user)
+        self.category = CategoryFactory.create(user=user)
 
     def test_normal_delete(self):
         category_delete(category_id=self.category.pk)

@@ -21,11 +21,11 @@ class CategoryInputSerializer(serializers.ModelSerializer):
     Сериализатор входных данных для создания категории.
     '''
 
-    created_by = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = Category
-        fields = ('name', 'description', 'created_by')
+        fields = ('name', 'description', 'user')
         extra_kwargs = {
             'name': {
                 'validators': [

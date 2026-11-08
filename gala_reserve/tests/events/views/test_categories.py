@@ -10,7 +10,7 @@ class TestListCreateCategoryView:
         self.payload = {
             'name': 'Category name',
             'description': 'Category description',
-            'created_by': user.pk
+            'user': user.pk
         }
 
     def test_get_success(self, api_client):
@@ -45,7 +45,7 @@ class TestListCreateCategoryView:
 
         assert response.status_code == 201
         assert Category.objects.count() == 1
-        assert Category.objects.first().created_by == user
+        assert Category.objects.first().user == user
 
     def test_case_insensitive_duplicated_returns_400(self, verified_client):
         CategoryFactory.create(name='Concerts')
