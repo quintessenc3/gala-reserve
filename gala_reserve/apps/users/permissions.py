@@ -1,4 +1,4 @@
-from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.permissions import BasePermission
 
 
 class IsVerified(BasePermission):
@@ -10,7 +10,7 @@ class IsVerified(BasePermission):
         return bool(request.user and getattr(request.user, 'is_email_verified', False))
 
 
-class IsOwnerOrAdmin(IsAuthenticated):
+class IsOwnerOrAdmin(IsVerified):
     '''
     Разрешение, проверяющее, является ли пользователь администратором
     или владельцем объекта.
