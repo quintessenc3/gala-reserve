@@ -53,6 +53,16 @@ class TestIsOwnerOrAdmin:
     def _use_permission(self, mock_view):
         mock_view.permission_classes = [IsOwnerOrAdmin]
 
+    @pytest.mark.parametrize('is_email_verified, expected', [
+        (True, status.HTTP_200_OK),
+        (False, status.HTTP_403_FORBIDDEN)
+    ])
+    def test_has_permission(self, user, mock_view, is_email_verified, expected):
+        user.is_email_verified = is_email_verified
+        user.pk = 1
+        response = mock_view.as_view()(make_get_request(user))
+        assert response.status_code == expected
+
     @pytest.mark.parametrize(
         "is_staff, pk, expected",
         [
@@ -63,7 +73,8 @@ class TestIsOwnerOrAdmin:
         ],
         ids=["admin", "owner", "admin_and_owner", "stranger"],
     )
-    def test_permission(self, user, mock_view, is_staff, pk, expected):
+    def test_has_object_permission(self, user, mock_view, is_staff, pk, expected):
+        user.is_email_verified = True
         user.is_staff = is_staff
         user.pk = pk
 
