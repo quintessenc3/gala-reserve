@@ -1,6 +1,6 @@
 from apps.events.factories import CategoryFactory, EventFactory
 from apps.events.serializers.categories import (
-    CategoryCreateSerializer,
+    CategoryInputSerializer,
     CategoryOutputSerializer,
 )
 
@@ -16,14 +16,13 @@ class TestCategoryOutputSerializer:
         assert serializer.data['events_count'] == 3
 
 
-class TestCategoryCreateSerializer:
-    def test_unique_name_lookup(self, user):
+class TestCategoryInputSerializer:
+    def test_unique_name_lookup(self, serializer_context):
         CategoryFactory.create(name='Birthdays')
-        serializer = CategoryCreateSerializer(data={
+        serializer = CategoryInputSerializer(data={
             'name': 'birthdays',
-            'description': 'description',
-            'created_by': user.pk
-        })
+            'description': 'description'
+        }, context=serializer_context)
 
         assert serializer.is_valid() == False
         assert 'name' in serializer.errors
