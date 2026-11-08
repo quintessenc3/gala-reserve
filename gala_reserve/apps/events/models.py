@@ -26,6 +26,7 @@ class Category(models.Model):
     class Meta:
         verbose_name = 'Категория события'
         verbose_name_plural = 'Категории событий'
+        ordering = ('id',)
         constraints = (
             models.UniqueConstraint(
                 Lower('name'),
