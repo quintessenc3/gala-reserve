@@ -48,6 +48,9 @@ class Event(models.Model):
     '''
 
     IMAGE_DIRECTORY = Path('events', 'images')
+    MAX_IMAGE_FILE_SIZE_BYTES = 5 * 1024 * 1024
+    MAX_IMAGE_RESOLUTION = (4096, 4096)
+    THUMBNAIL_SIZE_PX = (1920, 1920)
 
     title = models.CharField('Название', max_length=200)
     description = models.TextField('Описание')
@@ -74,7 +77,7 @@ class Event(models.Model):
             MaxValueValidator(Decimal('99999999.99'), message='Максимальная цена билета - 99999999.99 рублей.')
         ]
     )
-    status = models.CharField('Статус', max_length=50, choices=EventStatus.choices)
+    status = models.CharField('Статус', max_length=50, choices=EventStatus.choices, default=EventStatus.DRAFT)
     created_at = models.DateTimeField('Дата и время создания', auto_now_add=True)
     updated_at = models.DateTimeField('Дата и время обновления', auto_now=True)
     published_at = models.DateTimeField('Дата и время публикации', null=True, blank=True)

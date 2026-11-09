@@ -26,7 +26,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = ('title', 'description', 'category', 'address', 'start_at', 'end_at',
-                  'capacity', 'price', 'status', 'user')
+                  'capacity', 'price', 'user')
         validators = (
             FieldGreaterThanOtherValidator(
                 'end_at',
