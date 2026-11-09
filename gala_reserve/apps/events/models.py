@@ -82,6 +82,7 @@ class Event(models.Model):
     class Meta:
         verbose_name = 'Мероприятие'
         verbose_name_plural = 'Мероприятия'
+        ordering = ('id',)
         constraints = (
             CheckConstraint(
                 condition=Q(capacity__gte=F('seats_taken')),
