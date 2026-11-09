@@ -4,6 +4,10 @@ from apps.events.models import Event
 
 
 class EventOutputSerializer(serializers.ModelSerializer):
+    '''
+    Сериализатор выходных данных мероприятия.
+    '''
+    
     class Meta:
         model = Event
         fields = ('title', 'description', 'category', 'user', 'image', 'address',
