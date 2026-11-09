@@ -7,6 +7,7 @@ from apps.core.serializer_validators import (
     FieldGreaterThanOtherValidator,
 )
 from rest_framework import serializers
+from rest_framework.settings import api_settings
 
 
 @pytest.fixture
@@ -96,6 +97,27 @@ class TestBaseTwoFieldsValidator:
         serializer = self.serializer_class(data={'first': 5})
 
         assert serializer.is_valid()
+
+    def test_one_field_error(self):
+        self.serializer_class.multi_field_error = False
+        serializer = self.serializer_class(data={'first': 3, 'second': 4})
+
+        assert not serializer.is_valid()
+        assert {'first'} == set(serializer.errors.keys())
+
+    def test_multi_field_error(self):
+        validator = self.Validator(
+            field='first',
+            other_field='second',
+            multi_field_error=True,
+        )
+
+        self.serializer_class.validators = (validator,)
+
+        serializer = self.serializer_class(data={'first': 3, 'second': 4})
+
+        assert not serializer.is_valid()
+        assert {api_settings.NON_FIELD_ERRORS_KEY} == set(serializer.errors.keys())
 
 
 class TestFieldGreaterThanOtherValidator:
