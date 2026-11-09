@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pytest
 from apps.core.serializer_validators import (
     BaseTwoFieldsValidator,
+    FieldGreaterThanOrEqualOtherValidator,
     FieldGreaterThanOtherValidator,
 )
 from rest_framework import serializers
@@ -113,6 +114,29 @@ class TestFieldGreaterThanOtherValidator:
 
         assert not serializer.is_valid()
         assert {'first'} == set(serializer.errors.keys())
+
+    def test_field_lt_other_dont_pass_validation(self):
+        serializer = self.serializer_class(data={'first': 2, 'second': 3})
+        
+        assert not serializer.is_valid()
+        assert {'first'} == set(serializer.errors.keys())
+
+
+class TestFieldGreaterThanOrEqualOtherValidator:
+    @pytest.fixture(autouse=True)
+    def setup(self, serializer_class: serializers.Serializer):
+        self.serializer_class = serializer_class
+        self.serializer_class.validators = (FieldGreaterThanOrEqualOtherValidator('first', 'second'),)
+
+    def test_field_gt_other_pass_validation(self):
+        serializer = self.serializer_class(data={'first': 5, 'second': 3})
+
+        assert serializer.is_valid()
+
+    def test_field_eq_other_pass_validation(self):
+        serializer = self.serializer_class(data={'first': 3, 'second': 3})
+
+        assert serializer.is_valid()
 
     def test_field_lt_other_dont_pass_validation(self):
         serializer = self.serializer_class(data={'first': 2, 'second': 3})
