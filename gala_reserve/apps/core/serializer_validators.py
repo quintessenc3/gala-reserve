@@ -8,11 +8,13 @@ class BaseTwoFieldsValidator:
 
     requires_context = True
     message = "Некорректное соотношение полей {} и {}."
+    multi_field_error = False
 
     def __init__(
         self,
         field: str,
         other_field: str,
+        multi_field_error: bool | None = None,
         message: str | None = None
     ):
         self.field = field
@@ -20,6 +22,8 @@ class BaseTwoFieldsValidator:
 
         if message is not None:
             self.message = message
+        if multi_field_error is not None:
+            self.multi_field_error = multi_field_error
 
     def __call__(
         self,
@@ -48,12 +52,18 @@ class BaseTwoFieldsValidator:
             return
 
         if self.is_invalid(value, other_value):
-            raise exceptions.ValidationError({
-                self.field: self.message.format(
+            if not self.multi_field_error:
+                raise exceptions.ValidationError({
+                    self.field: self.message.format(
+                        self.field,
+                        self.other_field
+                    )
+                })
+            else:
+                raise exceptions.ValidationError(self.message.format(
                     self.field,
                     self.other_field
-                )
-            })
+                ))
 
     def is_invalid(self, value, other_value) -> bool:
         raise NotImplementedError
