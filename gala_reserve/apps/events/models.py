@@ -52,7 +52,7 @@ class Event(models.Model):
     title = models.CharField('Название', max_length=200)
     description = models.TextField('Описание')
     category = models.ForeignKey(Category, models.PROTECT, related_name='events')
-    organizer = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT, related_name='events')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT, related_name='events')
     image = models.ImageField('Изображение', upload_to=IMAGE_DIRECTORY, null=True, blank=True)
     address = models.CharField('Адрес проведения', max_length=255)
     start_at = models.DateTimeField('Дата и время начала')
