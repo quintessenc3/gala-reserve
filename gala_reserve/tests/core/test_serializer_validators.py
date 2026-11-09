@@ -22,6 +22,9 @@ def serializer_class() -> serializers.Serializer:
 class TestBaseTwoFieldsValidator:
     class Validator(BaseTwoFieldsValidator):
         def is_invalid(self, value, other_value):
+            if value is None or other_value is None:
+                return False
+
             return value <= other_value
 
     validator = Validator(field='first', other_field='second')

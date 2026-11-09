@@ -48,9 +48,6 @@ class BaseTwoFieldsValidator:
             getattr(instance, self.other_field, None) if instance else None
         )
 
-        if value is None or other_value is None:
-            return
-
         if self.is_invalid(value, other_value):
             if not self.multi_field_error:
                 raise exceptions.ValidationError({
@@ -78,6 +75,9 @@ class FieldGreaterThanOtherValidator(BaseTwoFieldsValidator):
     message = 'Поле {} должно быть больше, чем {}.'
 
     def is_invalid(self, value, other_value) -> bool:
+        if value is None or other_value is None:
+            return False
+
         return value <= other_value
 
 
@@ -90,4 +90,7 @@ class FieldGreaterThanOrEqualOtherValidator(BaseTwoFieldsValidator):
     message = 'Поле {} должно быть больше или равно полю {}.'
 
     def is_invalid(self, value, other_value) -> bool:
+        if value is None or other_value is None:
+            return False
+
         return value < other_value
