@@ -57,3 +57,15 @@ class BaseTwoFieldsValidator:
 
     def is_invalid(self, value, other_value) -> bool:
         raise NotImplementedError
+        
+
+class FieldGreaterThanOtherValidator(BaseTwoFieldsValidator):
+    '''
+    Валидатор того, что одно поле сериализатора больше,
+    чем другое.
+    '''
+
+    message = 'Поле {} должно быть больше, чем {}.'
+
+    def is_invalid(self, value, other_value) -> bool:
+        return value <= other_value
