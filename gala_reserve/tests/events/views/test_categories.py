@@ -138,7 +138,7 @@ class TestRetrieveUpdateDeleteCategoryView:
         assert not Category.objects.filter(pk=self.category.pk).exists()
 
     def test_delete_category_with_events_returns_conflict(self, user, verified_client):
-        EventFactory.create(category=self.category, organizer=user)
+        EventFactory.create(category=self.category, user=user)
 
         response = verified_client.delete(
             reverse('retrieve-update-delete-category', kwargs={'id': self.category.pk})

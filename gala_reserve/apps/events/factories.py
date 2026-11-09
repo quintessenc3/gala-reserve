@@ -21,7 +21,7 @@ class EventFactory(factory.django.DjangoModelFactory):
     title = factory.Sequence(lambda n: f'Event {n}')
     description = factory.Faker('paragraph', nb_sentences=5)
     category = factory.SubFactory(CategoryFactory)
-    organizer = factory.SubFactory(UserFactory)
+    user = factory.SubFactory(UserFactory)
     address = factory.Faker('street_address')
     start_at = factory.LazyFunction(
         lambda: timezone.now() + timedelta(days=7)
