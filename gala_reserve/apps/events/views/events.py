@@ -1,18 +1,21 @@
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status
 from rest_framework.filters import SearchFilter
-from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
+from rest_framework.generics import GenericAPIView, ListCreateAPIView, RetrieveAPIView
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from apps.events.models import Event
 from apps.events.selectors import EventSelector
 from apps.events.serializers.events import (
     EventCreateSerializer,
+    EventImageUploadSerializer,
     EventOutputSerializer,
     EventUpdateSerializer,
 )
-from apps.events.services.events import event_update
+from apps.events.services.events import event_set_image, event_update
 from apps.users.permissions import IsOwnerOrAdmin, IsVerified
 
 
@@ -121,3 +124,38 @@ class RetrieveUpdateEventView(RetrieveAPIView):
         output_serializer = EventOutputSerializer(instance=event)
 
         return Response(output_serializer.data)
+
+
+@extend_schema_view(
+    put=extend_schema(
+        tags=['Events'],
+        summary='Обновить изображение мероприятия',
+        description='Заменяет изображение мероприятия по его ID.',
+        request=EventImageUploadSerializer,
+        responses={
+            200: EventOutputSerializer,
+            404: OpenApiResponse(description='Мероприятия не существует'),
+            409: OpenApiResponse(description='Мероприятие уже завершилось или отменилось / Некорректное изображение')
+        }
+    )
+)
+class UploadEventImageView(GenericAPIView):
+    '''
+    Представление для загрузки изображения мероприятия.
+    '''
+
+    serializer_class = EventImageUploadSerializer
+    permission_classes = (IsOwnerOrAdmin,)
+    parser_classes = (MultiPartParser,)
+    queryset = Event.objects.all()
+    lookup_url_kwarg = 'id'
+
+    def put(self, request: Request, *args, **kwargs) -> Response:
+        event = self.get_object()
+        input_serializer = self.get_serializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        event = event_set_image(event_id=event.pk, **input_serializer.validated_data)
+
+        output_serializer = EventOutputSerializer(instance=event)
+        return Response(output_serializer.data, status=status.HTTP_200_OK)
