@@ -12,6 +12,7 @@ from apps.events.selectors import EventSelector
 from apps.events.serializers.events import (
     EventCreateSerializer,
     EventImageUploadSerializer,
+    EventOutputDetailSerializer,
     EventOutputSerializer,
     EventUpdateSerializer,
 )
@@ -81,7 +82,7 @@ class ListCreateEventView(ListCreateAPIView):
         summary='Получить детали мероприятия',
         description='Получает детали мероприятия по его ID.',
         responses={
-            200: EventOutputSerializer,
+            200: EventOutputDetailSerializer,
             404: OpenApiResponse(description='Мероприятия не существует')
         }
     ),
@@ -91,7 +92,7 @@ class ListCreateEventView(ListCreateAPIView):
         description='Обновляет мероприятие по его ID',
         request=EventUpdateSerializer,
         responses={
-            200: EventOutputSerializer,
+            200: EventOutputDetailSerializer,
             400: OpenApiResponse(description='Ошибка валидации'),
             409: OpenApiResponse(description='Мероприятие завершилось или отменилось / Попытка изменить организатора у опубликованного мероприятия')
         }
@@ -102,7 +103,7 @@ class RetrieveUpdateEventView(RetrieveAPIView):
     Представление извлечения или обновления мероприятия по его ID.
     '''
 
-    serializer_class = EventOutputSerializer
+    serializer_class = EventOutputDetailSerializer
     lookup_url_kwarg = 'id'
 
     def get_queryset(self):
@@ -121,7 +122,7 @@ class RetrieveUpdateEventView(RetrieveAPIView):
 
         event = event_update(event_id=instance.pk, event_input=input_serializer.validated_data)
 
-        output_serializer = EventOutputSerializer(instance=event)
+        output_serializer = EventOutputDetailSerializer(instance=event)
 
         return Response(output_serializer.data)
 

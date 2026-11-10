@@ -4,19 +4,56 @@ from apps.core.serializer_validators import (
     FieldGreaterThanOrEqualOtherValidator,
     FieldGreaterThanOtherValidator,
 )
-from apps.events.models import Event
+from apps.events.models import Category, Event
+from apps.users.models import User
+
+
+class EventCategoryOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('id', 'name')
+
+
+class EventOrganizerOutputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'first_name', 'last_name', 'photo')
 
 
 class EventOutputSerializer(serializers.ModelSerializer):
     '''
     Сериализатор выходных данных мероприятия.
     '''
-    
+
+    organizer = EventOrganizerOutputSerializer(source='user')
+    seats_available = serializers.SerializerMethodField()
+
+    def get_seats_available(self, event: Event) -> int:
+        return event.capacity - event.seats_taken
+
     class Meta:
         model = Event
-        fields = ('id', 'title', 'description', 'category', 'user', 'image', 'address',
-                  'start_at', 'end_at', 'capacity', 'seats_taken', 'price', 'status',
-                  'created_at', 'updated_at', 'published_at')
+        fields = ('id', 'title', 'category', 'organizer', 'image', 'address', 'start_at',
+                  'end_at', 'price', 'status', 'seats_available')
+
+
+class EventOutputDetailSerializer(serializers.ModelSerializer):
+    '''
+    Сериализатор детальных выходных данных мероприятия.
+    '''
+
+    organizer = EventOrganizerOutputSerializer(source='user')
+    seats_available = serializers.SerializerMethodField()
+
+    def get_seats_available(self, event: Event) -> int:
+        return event.capacity - event.seats_taken
+
+    class Meta:
+        model = Event
+        fields = ('id', 'title', 'category', 'organizer', 'image', 'address', 'start_at',
+                  'end_at', 'price', 'status', 'seats_available', 'description',
+                  'capacity', 'created_at')
+
 
 
 class EventCreateSerializer(serializers.ModelSerializer):
