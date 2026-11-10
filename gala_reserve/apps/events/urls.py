@@ -5,6 +5,7 @@ from apps.events.views.categories import (
     RetrieveUpdateDeleteCategoryView,
 )
 from apps.events.views.events import (
+    EventPublishView,
     ListCreateEventView,
     RetrieveUpdateEventView,
     UploadEventImageView,
@@ -15,5 +16,6 @@ urlpatterns = [
     path('categories/<int:id>/', RetrieveUpdateDeleteCategoryView.as_view(), name='retrieve-update-delete-category'),
     path('events/', ListCreateEventView.as_view(), name='list-create-event'),
     path('events/<int:id>/', RetrieveUpdateEventView.as_view(), name='retrieve-update-event'),
-    path('events/<int:id>/image/', UploadEventImageView.as_view(), name='upload-event-image')
+    path('events/<int:id>/image/', UploadEventImageView.as_view(), name='upload-event-image'),
+    path('events/<int:id>/publish/', EventPublishView.as_view(), name='publish-event')
 ]

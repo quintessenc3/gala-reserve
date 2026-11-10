@@ -1,4 +1,10 @@
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import (
+    OpenApiRequest,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import status
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import GenericAPIView, ListCreateAPIView, RetrieveAPIView
@@ -7,6 +13,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from apps.events.filters import EventFilter
 from apps.events.models import Event
 from apps.events.selectors import EventSelector
 from apps.events.serializers.events import (
@@ -16,7 +23,7 @@ from apps.events.serializers.events import (
     EventOutputSerializer,
     EventUpdateSerializer,
 )
-from apps.events.services.events import event_set_image, event_update
+from apps.events.services.events import event_publish, event_set_image, event_update
 from apps.users.permissions import IsOwnerOrAdmin, IsVerified
 
 
@@ -44,7 +51,8 @@ class ListCreateEventView(ListCreateAPIView):
     '''
 
     queryset = EventSelector.public_events()
-    filter_backends = (SearchFilter,)
+    filter_backends = (SearchFilter, DjangoFilterBackend)
+    filterset_class = EventFilter
     search_fields = ('title', 'description', 'address')
     
 
@@ -160,3 +168,34 @@ class UploadEventImageView(GenericAPIView):
 
         output_serializer = EventOutputSerializer(instance=event)
         return Response(output_serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    post=extend_schema(
+        tags=['Events'],
+        summary='Опубликовать мероприятие',
+        description='Опубликовывает мероприятие',
+        request=OpenApiRequest(),
+        responses={
+            200: EventOutputSerializer,
+            409: OpenApiResponse(description='Не загружена картинка / Мероприятие уже началось / Уже было опубликовано')
+        }
+    )
+)
+class EventPublishView(GenericAPIView):
+    '''
+    Представление для перевода мероприятия в статус опубликованного.
+    '''
+
+    serializer_class = EventOutputSerializer
+    permission_classes = (IsOwnerOrAdmin,)
+    queryset = Event.objects.all()
+    lookup_url_kwarg = 'id'
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        instance = self.get_object()
+
+        event = event_publish(event_id=instance.pk)
+
+        serializer = self.get_serializer(instance=event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
