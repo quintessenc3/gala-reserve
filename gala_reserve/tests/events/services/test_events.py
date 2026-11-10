@@ -14,10 +14,13 @@ from apps.core import error_codes
 from apps.events.factories import EventFactory
 from apps.events.models import Event, EventStatus
 from apps.events.services.events import (
+    CancelAlreadyCompletedEventError,
+    CancelDraftEventError,
     CompleteOrCancelledEventNotEditable,
     EventNotPublishableError,
     PublishAlreadyPublishedEventError,
     UserInPublishedEventNotEditableError,
+    event_cancel,
     event_publish,
     event_set_image,
     event_update,
@@ -217,3 +220,47 @@ class TestEventPublish:
 
         with pytest.raises(EventNotPublishableError):
             event_publish(event_id=event.pk)
+
+
+class TestEventCancel:
+    def test_cancels_published_event_and_updates_updated_at(self, user):
+        with freezegun.freeze_time('2025-01-01 10:00:00'):
+            event = EventFactory.create(user=user, status=EventStatus.PUBLISHED)
+            original_updated_at = event.updated_at
+
+        with freezegun.freeze_time('2025-01-01 10:15:00'):
+            cancelled_event = event_cancel(event_id=event.pk)
+            event.refresh_from_db()
+            updated_at = timezone.now()
+
+        assert cancelled_event.pk == event.pk
+        assert event.status == EventStatus.CANCELLED
+        assert event.updated_at == updated_at
+        assert event.updated_at != original_updated_at
+
+    def test_event_does_not_exist(self, db):
+        with pytest.raises(exceptions.NotFound):
+            event_cancel(event_id=0)
+
+    @pytest.mark.parametrize('status', (EventStatus.COMPLETED, EventStatus.CANCELLED))
+    def test_completed_or_cancelled_event_cannot_be_cancelled(self, user, status):
+        event = EventFactory.create(user=user, status=status)
+        original_updated_at = event.updated_at
+
+        with pytest.raises(CancelAlreadyCompletedEventError):
+            event_cancel(event_id=event.pk)
+
+        event.refresh_from_db()
+        assert event.status == status
+        assert event.updated_at == original_updated_at
+
+    def test_draft_event_cannot_be_cancelled(self, user):
+        event = EventFactory.create(user=user, status=EventStatus.DRAFT)
+        original_updated_at = event.updated_at
+
+        with pytest.raises(CancelDraftEventError):
+            event_cancel(event_id=event.pk)
+
+        event.refresh_from_db()
+        assert event.status == EventStatus.DRAFT
+        assert event.updated_at == original_updated_at
