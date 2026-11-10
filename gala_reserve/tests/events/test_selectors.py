@@ -37,6 +37,16 @@ class TestEventSelector:
             if status != EventStatus.DRAFT
         }
 
+    def test_my_events_returns_only_my_any_events(self, user, other_user):
+        my_events = [
+            EventFactory.create(user=user, status=status)
+            for status in EventStatus.values
+        ]
+        for status in EventStatus.values:
+            EventFactory.create(user=other_user, status=status)
+
+        assert set(EventSelector.my_events(viewer=user)) == set(my_events)
+
     def test_authenticated_user_can_see_only_their_own_draft_events(self, user, other_user):
         own_draft = EventFactory.create(user=user, status=EventStatus.DRAFT)
         EventFactory.create(user=other_user, status=EventStatus.DRAFT)
