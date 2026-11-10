@@ -2,6 +2,7 @@ from datetime import timedelta
 from io import BytesIO
 
 import pytest
+from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -358,3 +359,73 @@ class TestUploadEventImageView:
 
         assert response.status_code == 404
         assert response.json()['error']['code'] == 'not_found'
+
+
+class TestEventPublishView:
+    def get_url(self, event_id):
+        return reverse('publish-event', kwargs={'id': event_id})
+
+    def test_post_success_for_owner(self, user, verified_client):
+        event = EventFactory.create(user=user)
+        event.image.save('event.png', ContentFile(b'image'), save=True)
+
+        response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 200
+        event.refresh_from_db()
+        assert event.status == EventStatus.PUBLISHED
+
+    def test_post_success_for_admin(self, user, other_user, verified_client):
+        user.is_staff = True
+        user.save(update_fields=['is_staff'])
+        event = EventFactory.create(user=other_user)
+        event.image.save('event.png', ContentFile(b'image'), save=True)
+
+        response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 200
+
+    def test_post_requires_owner_or_admin(self, other_user, verified_client):
+        event = EventFactory.create(user=other_user)
+        event.image.save('event.png', ContentFile(b'image'), save=True)
+
+        response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 403
+        assert response.json()['error']['code'] == 'permission_denied'
+
+    def test_post_nonexistent_event_returns_not_found_error_code(self, db, verified_client):
+        response = verified_client.post(self.get_url(0))
+
+        assert response.status_code == 404
+        assert response.json()['error']['code'] == 'not_found'
+
+    @pytest.mark.parametrize('status', (EventStatus.PUBLISHED, EventStatus.COMPLETED, EventStatus.CANCELLED))
+    def test_post_event_not_in_draft_status_returns_invalid_event_transition(self, user, verified_client, status):
+        event = EventFactory.create(user=user, status=status)
+        event.image.save('event.png', ContentFile(b'image'), save=True)
+
+        response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.INVALID_EVENT_TRANSITION
+
+    def test_post_started_event_returns_not_publishable(self, user, verified_client):
+        event = EventFactory.create(
+            user=user,
+            start_at=timezone.now() - timedelta(seconds=1),
+        )
+        event.image.save('event.png', ContentFile(b'image'), save=True)
+
+        response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.EVENT_NOT_PUBLISHABLE
+
+    def test_post_event_without_image_returns_not_publishable(self, user, verified_client):
+        event = EventFactory.create(user=user)
+
+        response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.EVENT_NOT_PUBLISHABLE
