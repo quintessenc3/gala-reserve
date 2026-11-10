@@ -6,6 +6,8 @@ RESEND_COOLDOWN = 'resend_cooldown'
 PASSWORDS_DO_NOT_MATCH = 'passwords_do_not_match'
 
 EVENT_NOT_EDITABLE = 'event_not_editable'
+COMPLETED_OR_CANCELLED_EVENT_NOT_EDITABLE = 'completed_or_cancelled_event_not_editable'
+USER_IN_PUBLISHED_EVENT_NOT_EDITABLE = 'user_in_published_event_no_editable'
 EVENT_NOT_PUBLISHABLE = 'event_not_publishable'
 INVALID_EVENT_TRANSITION = 'invalid_event_transition'
 CATEGORY_IN_USE = 'category_in_use'
