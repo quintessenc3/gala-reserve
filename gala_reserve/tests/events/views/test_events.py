@@ -1,11 +1,35 @@
 from datetime import timedelta
+from io import BytesIO
 
 import pytest
-from apps.core import error_codes
-from apps.events.factories import CategoryFactory, EventFactory
-from apps.events.models import Event, EventStatus
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
+
+from apps.core import error_codes
+from apps.core.services.images import (
+    ImageDimensionsTooLargeError,
+    ImageTooLargeError,
+    ImageUnsupportedFormatError,
+    InvalidImageError,
+)
+from apps.events.factories import CategoryFactory, EventFactory
+from apps.events.models import Event, EventStatus
+
+
+def make_uploaded_image(image_format='PNG', size=(200, 100)):
+    image = Image.new('RGB', size, color='red')
+    buffer = BytesIO()
+    image.save(buffer, format=image_format)
+
+    extension = {'BMP': 'bmp', 'JPEG': 'jpg', 'PNG': 'png', 'WEBP': 'webp'}[image_format]
+    return SimpleUploadedFile(
+        f'image.{extension}',
+        buffer.getvalue(),
+        content_type=f'image/{extension}',
+    )
 
 
 class TestListCreateEventView:
@@ -227,3 +251,110 @@ class TestRetrieveUpdateEventView:
         assert response.json()['error']['code'] == error_codes.USER_IN_PUBLISHED_EVENT_NOT_EDITABLE
         event.refresh_from_db()
         assert event.user_id == user.pk
+
+
+class TestUploadEventImageView:
+    def get_url(self, event_id):
+        return reverse('upload-event-image', kwargs={'id': event_id})
+
+    def test_put_success_image_is_available_by_returned_url(self, user, verified_client):
+        event = EventFactory.create(user=user)
+
+        response = verified_client.put(
+            self.get_url(event.pk),
+            data={'image': make_uploaded_image()},
+            format='multipart',
+        )
+
+        assert response.status_code == 200
+        image_url = response.json()['image']
+        event.refresh_from_db()
+        assert image_url == event.image.url
+        assert image_url
+
+        with (
+            default_storage.open(event.image.name) as stored_image,
+            Image.open(stored_image) as image,
+        ):
+            assert image.format == 'WEBP'
+
+    def test_put_success_for_admin(self, user, other_user, verified_client):
+        user.is_staff = True
+        user.save(update_fields=['is_staff'])
+        event = EventFactory.create(user=other_user)
+
+        response = verified_client.put(
+            self.get_url(event.pk),
+            data={'image': make_uploaded_image()},
+            format='multipart',
+        )
+
+        assert response.status_code == 200
+
+    def test_put_requires_owner_or_admin(self, other_user, verified_client):
+        event = EventFactory.create(user=other_user)
+
+        response = verified_client.put(
+            self.get_url(event.pk),
+            data={'image': make_uploaded_image()},
+            format='multipart',
+        )
+
+        assert response.status_code == 403
+        assert response.json()['error']['code'] == 'permission_denied'
+
+    def test_put_requires_verified_user(self, user, auth_client):
+        event = EventFactory.create(user=user)
+
+        response = auth_client.put(
+            self.get_url(event.pk),
+            data={'image': make_uploaded_image()},
+            format='multipart',
+        )
+
+        assert response.status_code == 403
+        assert response.json()['error']['code'] == 'permission_denied'
+
+    @pytest.mark.parametrize(('error', 'code'),
+        [
+            (InvalidImageError, error_codes.INVALID_IMAGE),
+            (ImageUnsupportedFormatError, error_codes.UNSUPPORTED_IMAGE_FORMAT),
+            (ImageTooLargeError, error_codes.IMAGE_TOO_LARGE),
+            (ImageDimensionsTooLargeError, error_codes.IMAGE_DIMENSIONS_TOO_LARGE),
+        ],
+    )
+    def test_put_process_image_error_returns_error_code(self, user, verified_client, mocker, error, code):
+        event = EventFactory.create(user=user)
+        mocker.patch('apps.events.services.events.process_image', side_effect=error)
+
+        response = verified_client.put(
+            self.get_url(event.pk),
+            data={'image': make_uploaded_image()},
+            format='multipart',
+        )
+
+        assert response.status_code == 400
+        assert response.json()['error']['code'] == code
+
+    @pytest.mark.parametrize('status', (EventStatus.COMPLETED, EventStatus.CANCELLED))
+    def test_put_completed_or_cancelled_event_returns_error_code(self, user, verified_client, status):
+        event = EventFactory.create(user=user, status=status)
+
+        response = verified_client.put(
+            self.get_url(event.pk),
+            data={'image': make_uploaded_image()},
+            format='multipart',
+        )
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.COMPLETED_OR_CANCELLED_EVENT_NOT_EDITABLE
+
+    def test_put_nonexistent_event_returns_not_found_error_code(self, db, verified_client):
+        response = verified_client.put(
+            self.get_url(0),
+            data={'image': make_uploaded_image()},
+            format='multipart',
+        )
+
+        assert response.status_code == 404
+        assert response.json()['error']['code'] == 'not_found'
