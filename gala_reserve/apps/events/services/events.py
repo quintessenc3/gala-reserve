@@ -1,8 +1,10 @@
+from django.core.files import File
 from django.db import transaction
 from rest_framework import exceptions, status
 
 from apps.core import error_codes
 from apps.core.exceptions import DomainError
+from apps.core.services.images import process_image
 from apps.events.models import Event, EventStatus
 
 
@@ -44,5 +46,31 @@ def event_update(
             setattr(event, field, value)
 
         event.save(update_fields=[*event_input.keys(), 'updated_at'])
+
+    return event
+
+
+def event_set_image(*, event_id: int, image: File) -> Event:
+    '''
+    Сервис для установки изображения мероприятия.
+    '''
+
+    with transaction.atomic():
+        event = Event.objects.select_for_update().filter(pk=event_id).first()
+        if event is None:
+            raise exceptions.NotFound(detail='Мероприятия не существует.')
+
+        if event.status in (EventStatus.COMPLETED, EventStatus.CANCELLED):
+            raise CompleteOrCancelledEventNotEditable
+
+        processed = process_image(
+            file=image,
+            max_image_size_bytes=Event.MAX_IMAGE_FILE_SIZE_BYTES,
+            max_image_resolution_px=Event.MAX_IMAGE_RESOLUTION,
+            thumbnail_size_px=Event.THUMBNAIL_SIZE_PX
+        )
+
+        event.image.save(processed.name, processed, save=False)
+        event.save(update_fields=['image'])
 
     return event
