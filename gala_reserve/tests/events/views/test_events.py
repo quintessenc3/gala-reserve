@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import pytest
+from apps.core import error_codes
 from apps.events.factories import CategoryFactory, EventFactory
 from apps.events.models import Event, EventStatus
 from django.urls import reverse
@@ -90,3 +91,139 @@ class TestListCreateEventView:
         assert event.title == self.payload['title']
         assert event.status == EventStatus.DRAFT
         assert response.json()['id'] == event.pk
+
+
+class TestRetrieveUpdateEventView:
+    def test_get_success(self, user, auth_client):
+        event = EventFactory.create(user=user)
+
+        response = auth_client.get(reverse('retrieve-update-event', kwargs={'id': event.pk}))
+
+        assert response.status_code == 200
+        assert response.json()['id'] == event.pk
+        assert response.json()['title'] == event.title
+
+    @pytest.mark.parametrize('status', (EventStatus.PUBLISHED, EventStatus.COMPLETED, EventStatus.CANCELLED))
+    def test_get_non_draft_event_is_visible_to_regular_user(self, other_user, api_client, status):
+        event = EventFactory.create(user=other_user, status=status)
+
+        response = api_client.get(reverse('retrieve-update-event', kwargs={'id': event.pk}))
+
+        assert response.status_code == 200
+        assert response.json()['id'] == event.pk
+
+    @pytest.mark.parametrize('status', EventStatus.values)
+    def test_get_any_status_event_is_visible_to_owner(self, user, status, auth_client):
+        event = EventFactory.create(user=user, status=status)
+
+        response = auth_client.get(reverse('retrieve-update-event', kwargs={'id': event.pk}))
+
+        assert response.status_code == 200
+        assert response.json()['id'] == event.pk
+
+    @pytest.mark.parametrize('status', EventStatus.values)
+    def test_get_any_status_event_is_visible_to_admin(self, user, other_user, status, auth_client):
+        user.is_staff = True
+        user.save(update_fields=['is_staff'])
+        event = EventFactory.create(user=other_user, status=status)
+
+        response = auth_client.get(reverse('retrieve-update-event', kwargs={'id': event.pk}))
+
+        assert response.status_code == 200
+        assert response.json()['id'] == event.pk
+
+    def test_get_non_owned_draft_event_returns_404(self, other_user, api_client):
+        event = EventFactory.create(user=other_user, status=EventStatus.DRAFT)
+
+        response = api_client.get(reverse('retrieve-update-event', kwargs={'id': event.pk}))
+
+        assert response.status_code == 404
+        assert response.json()['error']['code'] == 'not_found'
+
+    def test_get_nonexistent_event_returns_404(self, db, api_client):
+        response = api_client.get(reverse('retrieve-update-event', kwargs={'id': 0}))
+
+        assert response.status_code == 404
+        assert response.json()['error']['code'] == 'not_found'
+
+    def test_patch_success(self, user, verified_client):
+        event = EventFactory.create(user=user, title='Original title')
+        payload = {'title': 'Updated title'}
+
+        response = verified_client.patch(reverse('retrieve-update-event', kwargs={'id': event.pk}), data=payload, format='json')
+
+        assert response.status_code == 200
+        assert response.json()['title'] == payload['title']
+        event.refresh_from_db()
+        assert event.title == payload['title']
+
+    def test_patch_success_for_admin(self, user, other_user, verified_client):
+        user.is_staff = True
+        user.save(update_fields=['is_staff'])
+        event = EventFactory.create(user=other_user, title='Original title')
+        payload = {'title': 'Updated by admin'}
+
+        response = verified_client.patch(reverse('retrieve-update-event', kwargs={'id': event.pk}), data=payload, format='json')
+
+        assert response.status_code == 200
+        assert response.json()['title'] == payload['title']
+        event.refresh_from_db()
+        assert event.title == payload['title']
+
+    def test_patch_requires_verified_user(self, user, auth_client):
+        event = EventFactory.create(user=user, title='Original title')
+
+        response = auth_client.patch(
+            reverse('retrieve-update-event', kwargs={'id': event.pk}),
+            data={'title': 'Updated title'},
+            format='json',
+        )
+
+        assert response.status_code == 403
+        assert response.json()['error']['code'] == 'permission_denied'
+        event.refresh_from_db()
+        assert event.title == 'Original title'
+
+    def test_patch_requires_owner(self, other_user, verified_client):
+        event = EventFactory.create(user=other_user, status=EventStatus.PUBLISHED)
+
+        response = verified_client.patch(
+            reverse('retrieve-update-event', kwargs={'id': event.pk}),
+            data={'title': 'Updated title'},
+            format='json',
+        )
+
+        assert response.status_code == 403
+        assert response.json()['error']['code'] == 'permission_denied'
+        event.refresh_from_db()
+        assert event.title != 'Updated title'
+
+    @pytest.mark.parametrize('status', (EventStatus.COMPLETED, EventStatus.CANCELLED))
+    def test_patch_completed_or_cancelled_event_returns_error_code(self, user, verified_client, status):
+        event = EventFactory.create(user=user, status=status)
+        original_title = event.title
+
+        response = verified_client.patch(
+            reverse('retrieve-update-event', kwargs={'id': event.pk}),
+            data={'title': 'Updated title'},
+            format='json',
+        )
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.COMPLETED_OR_CANCELLED_EVENT_NOT_EDITABLE
+        event.refresh_from_db()
+        assert event.title == original_title
+
+    def test_patch_published_event_organizer_returns_error_code(self, user, other_user, verified_client):
+        event = EventFactory.create(user=user, status=EventStatus.PUBLISHED)
+
+        response = verified_client.patch(
+            reverse('retrieve-update-event', kwargs={'id': event.pk}),
+            data={'user': other_user.pk},
+            format='json',
+        )
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.USER_IN_PUBLISHED_EVENT_NOT_EDITABLE
+        event.refresh_from_db()
+        assert event.user_id == user.pk
