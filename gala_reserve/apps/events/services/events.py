@@ -33,6 +33,18 @@ class PublishAlreadyPublishedEventError(DomainError):
     http_status = status.HTTP_409_CONFLICT
 
 
+class CancelAlreadyCompletedEventError(DomainError):
+    code = error_codes.INVALID_EVENT_TRANSITION
+    message = 'Нельзя отменить мероприятие, которое уже было отменено или завершено.'
+    http_status = status.HTTP_409_CONFLICT
+
+
+class CancelDraftEventError(DomainError):
+    code = error_codes.INVALID_EVENT_TRANSITION
+    message = 'Нельзя отменить мероприятие в состоянии черновика.'
+    http_status = status.HTTP_409_CONFLICT
+
+
 def event_update(
         *, 
         event_id: int,
@@ -108,5 +120,26 @@ def event_publish(*, event_id: int) -> Event:
         event.status = EventStatus.PUBLISHED
         event.published_at = timezone.now()
         event.save(update_fields=['status', 'published_at', 'updated_at'])
+
+    return event
+
+
+def event_cancel(*, event_id: int) -> Event:
+    '''
+    Сервис отмены мероприятия.
+    '''
+
+    with transaction.atomic():
+        event = Event.objects.select_for_update().filter(pk=event_id).first()
+        if event is None:
+            raise exceptions.NotFound(detail='Мероприятия не существует.')
+
+        if event.status in (EventStatus.COMPLETED, EventStatus.CANCELLED):
+            raise CancelAlreadyCompletedEventError
+        elif event.status == EventStatus.DRAFT:
+            raise CancelDraftEventError
+
+        event.status = EventStatus.CANCELLED
+        event.save(update_fields=['status', 'updated_at'])
 
     return event
