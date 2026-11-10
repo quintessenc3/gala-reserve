@@ -1,21 +1,27 @@
+from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO
 
 import freezegun
 import pytest
-from apps.events.factories import EventFactory
-from apps.events.models import Event, EventStatus
-from apps.events.services.events import (
-    CompleteOrCancelledEventNotEditable,
-    UserInPublishedEventNotEditableError,
-    event_set_image,
-    event_update,
-)
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from PIL import Image
 from rest_framework import exceptions
+
+from apps.core import error_codes
+from apps.events.factories import EventFactory
+from apps.events.models import Event, EventStatus
+from apps.events.services.events import (
+    CompleteOrCancelledEventNotEditable,
+    EventNotPublishableError,
+    PublishAlreadyPublishedEventError,
+    UserInPublishedEventNotEditableError,
+    event_publish,
+    event_set_image,
+    event_update,
+)
 
 
 def make_image(image_format='PNG', size=(2000, 1000)):
@@ -158,3 +164,56 @@ class TestEventSetImage:
 
         event.refresh_from_db()
         assert not event.image
+
+
+class TestEventPublish:
+    def test_publishes_draft_and_updates_updated_at(self, user):
+        with freezegun.freeze_time('2025-01-01 10:00:00'):
+            event = EventFactory.create(
+                user=user,
+                status=EventStatus.DRAFT,
+                start_at=timezone.now() + timedelta(days=1),
+            )
+            event.image.save('event.png', ContentFile(b'image'), save=True)
+            original_updated_at = event.updated_at
+
+        with freezegun.freeze_time('2025-01-01 10:15:00'):
+            published_event = event_publish(event_id=event.pk)
+            event.refresh_from_db()
+            updated_at = timezone.now()
+
+        assert published_event.pk == event.pk
+        assert event.status == EventStatus.PUBLISHED
+        assert event.published_at == updated_at
+        assert event.updated_at == updated_at
+        assert event.updated_at != original_updated_at
+
+    def test_event_does_not_exist(self, db):
+        with pytest.raises(exceptions.NotFound):
+            event_publish(event_id=0)
+
+    @pytest.mark.parametrize('status', (EventStatus.PUBLISHED, EventStatus.COMPLETED, EventStatus.CANCELLED))
+    def test_event_not_in_draft_status_cannot_be_published(self, user, status):
+        event = EventFactory.create(user=user, status=status)
+
+        with pytest.raises(PublishAlreadyPublishedEventError):
+            event_publish(event_id=event.pk)
+
+    def test_started_event_cannot_be_published(self, user):
+        event = EventFactory.create(
+            user=user,
+            start_at=timezone.now() - timedelta(seconds=1),
+        )
+        event.image.save('event.png', ContentFile(b'image'), save=True)
+
+        with pytest.raises(EventNotPublishableError):
+            event_publish(event_id=event.pk)
+
+    def test_event_without_image_cannot_be_published(self, user):
+        event = EventFactory.create(
+            user=user,
+            start_at=timezone.now() + timedelta(days=1),
+        )
+
+        with pytest.raises(EventNotPublishableError):
+            event_publish(event_id=event.pk)
