@@ -1,12 +1,15 @@
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status
-from rest_framework.generics import GenericAPIView, RetrieveAPIView
+from rest_framework.generics import GenericAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.mixins import UpdateModelMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.core.serializers import MessageOutputSerializer
+from apps.events.selectors import EventSelector
+from apps.events.serializers.events import EventOutputSerializer
 from apps.users.models import User
+from apps.users.permissions import IsVerified
 from apps.users.serializers.my_profile import (
     MyProfileOutputSerializer,
     MyProfileUpdateSerializer,
@@ -81,3 +84,22 @@ class PasswordResetByOldPasswordView(GenericAPIView):
         user_reset_password_by_old_password(user_id=request.user.pk, **serializer.validated_data)
 
         return Response({'message': 'Пароль успешно сброшен'}, status=status.HTTP_200_OK)
+    
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=['Users'],
+        summary='Получить список своих мероприятий',
+        description='Получает список своих мероприятий любого статуса.'
+    )
+)
+class MyEventsView(ListAPIView):
+    '''
+    Представление для просмотра своих мероприятий.
+    '''
+
+    serializer_class = EventOutputSerializer
+    permission_classes = (IsVerified,)
+
+    def get_queryset(self):
+        return EventSelector.my_events(viewer=self.request.user)

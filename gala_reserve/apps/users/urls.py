@@ -10,7 +10,11 @@ from apps.users.views.auth import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-from apps.users.views.my_profile import MyProfileView, PasswordResetByOldPasswordView
+from apps.users.views.my_profile import (
+    MyEventsView,
+    MyProfileView,
+    PasswordResetByOldPasswordView,
+)
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
@@ -23,4 +27,5 @@ urlpatterns = [
     path('auth/password-reset/confirm', PasswordResetByCodeView.as_view(), name='password-reset-confirm'),
     path('users/me/', MyProfileView.as_view(), name='my-profile'),
     path('users/me/password', PasswordResetByOldPasswordView.as_view(), name='my-profile-password-reset'),
+    path('users/me/events/', MyEventsView.as_view(), name='my-events')
 ]
