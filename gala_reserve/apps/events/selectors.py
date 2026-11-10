@@ -21,3 +21,7 @@ class EventSelector:
         if viewer.is_authenticated:
             visible |= Q(user=viewer)
         return queryset.filter(visible)
+
+    @staticmethod
+    def my_events(*, viewer):
+        return Event.objects.select_related('category', 'user').filter(user=viewer)
