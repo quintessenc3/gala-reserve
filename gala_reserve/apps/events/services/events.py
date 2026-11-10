@@ -1,5 +1,6 @@
 from django.core.files import File
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import exceptions, status
 
 from apps.core import error_codes
@@ -17,6 +18,18 @@ class CompleteOrCancelledEventNotEditable(DomainError):
 class UserInPublishedEventNotEditableError(DomainError):
     code = error_codes.USER_IN_PUBLISHED_EVENT_NOT_EDITABLE
     message = 'Нельзя редактировать организатора мероприятия, если оно уже опубликовано.'
+    http_status = status.HTTP_409_CONFLICT
+
+
+class EventNotPublishableError(DomainError):
+    code = error_codes.EVENT_NOT_PUBLISHABLE
+    message = 'Нельзя опубликовать это мероприятие.'
+    http_status = status.HTTP_409_CONFLICT
+
+
+class PublishAlreadyPublishedEventError(DomainError):
+    code = error_codes.INVALID_EVENT_TRANSITION
+    message = 'Нельзя опубликовать мероприятие, которое уже было опубликовано.'
     http_status = status.HTTP_409_CONFLICT
 
 
@@ -72,5 +85,28 @@ def event_set_image(*, event_id: int, image: File) -> Event:
 
         event.image.save(processed.name, processed, save=False)
         event.save(update_fields=['image'])
+
+    return event
+
+
+def event_publish(*, event_id: int) -> Event:
+    '''
+    Сервис публикации мероприятия.
+    '''
+
+    with transaction.atomic():
+        event = Event.objects.select_for_update().filter(pk=event_id).first()
+        if event is None:
+            raise exceptions.NotFound(detail='Мероприятия не существует.')
+
+        if event.status != EventStatus.DRAFT:
+            raise PublishAlreadyPublishedEventError
+
+        if not event.image or event.start_at <= timezone.now():
+            raise EventNotPublishableError
+
+        event.status = EventStatus.PUBLISHED
+        event.published_at = timezone.now()
+        event.save(update_fields=['status', 'published_at', 'updated_at'])
 
     return event
