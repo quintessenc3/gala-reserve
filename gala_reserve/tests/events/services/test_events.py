@@ -1,16 +1,34 @@
 from decimal import Decimal
+from io import BytesIO
 
 import freezegun
 import pytest
 from apps.events.factories import EventFactory
-from apps.events.models import EventStatus
+from apps.events.models import Event, EventStatus
 from apps.events.services.events import (
     CompleteOrCancelledEventNotEditable,
     UserInPublishedEventNotEditableError,
+    event_set_image,
     event_update,
 )
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
+from PIL import Image
 from rest_framework import exceptions
+
+
+def make_image(image_format='PNG', size=(2000, 1000)):
+    image = Image.new('RGB', size, color='red')
+    buffer = BytesIO()
+    image.save(buffer, format=image_format)
+
+    extension = {'BMP': 'bmp', 'JPEG': 'jpg', 'PNG': 'png'}[image_format]
+    return SimpleUploadedFile(
+        f'image.{extension}',
+        buffer.getvalue(),
+        content_type=f'image/{extension}',
+    )
 
 
 class TestEventUpdate:
@@ -105,3 +123,38 @@ class TestEventUpdate:
 
         event.refresh_from_db()
         assert event.user_id == user.pk
+
+
+class TestEventSetImage:
+    def test_replaces_event_image_with_resized_webp(self, user):
+        event = EventFactory.create(user=user)
+        event.image.save('old.png', ContentFile(b'old image'), save=True)
+        old_image_name = event.image.name
+
+        updated_event = event_set_image(
+            event_id=event.pk,
+            image=make_image(size=(3000, 1500)),
+        )
+        event.refresh_from_db()
+
+        assert updated_event.pk == event.pk
+        assert event.image.name != old_image_name
+        assert event.image.name.endswith('.webp')
+        with Image.open(event.image) as image:
+            assert image.format == 'WEBP'
+            assert image.size[0] <= Event.THUMBNAIL_SIZE_PX[0]
+            assert image.size[1] <= Event.THUMBNAIL_SIZE_PX[1]
+
+    def test_event_does_not_exist(self, db):
+        with pytest.raises(exceptions.NotFound):
+            event_set_image(event_id=0, image=make_image())
+
+    @pytest.mark.parametrize('status', (EventStatus.COMPLETED, EventStatus.CANCELLED))
+    def test_completed_or_cancelled_event_is_not_editable(self, user, status):
+        event = EventFactory.create(user=user, status=status)
+
+        with pytest.raises(CompleteOrCancelledEventNotEditable):
+            event_set_image(event_id=event.pk, image=make_image())
+
+        event.refresh_from_db()
+        assert not event.image
