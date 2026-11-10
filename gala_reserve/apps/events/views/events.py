@@ -23,7 +23,12 @@ from apps.events.serializers.events import (
     EventOutputSerializer,
     EventUpdateSerializer,
 )
-from apps.events.services.events import event_publish, event_set_image, event_update
+from apps.events.services.events import (
+    event_cancel,
+    event_publish,
+    event_set_image,
+    event_update,
+)
 from apps.users.permissions import IsOwnerOrAdmin, IsVerified
 
 
@@ -196,6 +201,38 @@ class EventPublishView(GenericAPIView):
         instance = self.get_object()
 
         event = event_publish(event_id=instance.pk)
+
+        serializer = self.get_serializer(instance=event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    post=extend_schema(
+        tags=['Events'],
+        summary='Отменить мероприятие',
+        description='Отменяет мероприятие',
+        request=OpenApiRequest(),
+        responses={
+            200: EventOutputSerializer,
+            404: OpenApiResponse(description='Мероприятия не существует'),
+            409: OpenApiResponse(description='Мероприятие уже завершилось / Находится в статусе черновика')
+        }
+    )
+)
+class EventCancelView(GenericAPIView):
+    '''
+    Представление для перевода мероприятия в статус отмененного.
+    '''
+
+    serializer_class = EventOutputSerializer
+    permission_classes = (IsOwnerOrAdmin,)
+    queryset = Event.objects.all()
+    lookup_url_kwarg = 'id'
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        instance = self.get_object()
+
+        event = event_cancel(event_id=instance.pk)
 
         serializer = self.get_serializer(instance=event)
         return Response(serializer.data, status=status.HTTP_200_OK)
