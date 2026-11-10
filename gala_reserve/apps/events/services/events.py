@@ -34,7 +34,10 @@ def event_update(
 
         if event.status in (EventStatus.COMPLETED, EventStatus.CANCELLED):
             raise CompleteOrCancelledEventNotEditable
-        elif event.status == EventStatus.PUBLISHED and event_input.get('user_id', None) is not None:
+        elif event.status == EventStatus.PUBLISHED and (
+            event_input.get('user_id', None) or
+            event_input.get('user', None)
+        ) is not None:
             raise UserInPublishedEventNotEditableError
 
         for field, value in event_input.items():
