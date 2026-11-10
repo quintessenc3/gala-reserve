@@ -1,6 +1,7 @@
 from datetime import timedelta
 from io import BytesIO
 
+import freezegun
 import pytest
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -429,3 +430,63 @@ class TestEventPublishView:
 
         assert response.status_code == 409
         assert response.json()['error']['code'] == error_codes.EVENT_NOT_PUBLISHABLE
+
+
+class TestEventCancelView:
+    def get_url(self, event_id):
+        return reverse('cancel-event', kwargs={'id': event_id})
+
+    def test_post_success_for_owner_and_updates_status_and_updated_at(self, user, verified_client):
+        with freezegun.freeze_time('2025-01-01 10:00:00'):
+            event = EventFactory.create(user=user, status=EventStatus.PUBLISHED)
+            original_updated_at = event.updated_at
+
+        with freezegun.freeze_time('2025-01-01 10:15:00'):
+            response = verified_client.post(self.get_url(event.pk))
+            event.refresh_from_db()
+            updated_at = timezone.now()
+
+        assert response.status_code == 200
+        assert event.status == EventStatus.CANCELLED
+        assert event.updated_at == updated_at
+        assert event.updated_at != original_updated_at
+
+    def test_post_success_for_admin(self, user, other_user, verified_client):
+        user.is_staff = True
+        user.save(update_fields=['is_staff'])
+        event = EventFactory.create(user=other_user, status=EventStatus.PUBLISHED)
+
+        response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 200
+
+    def test_post_requires_owner_or_admin(self, other_user, verified_client):
+        event = EventFactory.create(user=other_user, status=EventStatus.PUBLISHED)
+
+        response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 403
+        assert response.json()['error']['code'] == 'permission_denied'
+
+    def test_post_nonexistent_event_returns_not_found_error_code(self, db, verified_client):
+        response = verified_client.post(self.get_url(0))
+
+        assert response.status_code == 404
+        assert response.json()['error']['code'] == 'not_found'
+
+    @pytest.mark.parametrize('status', (EventStatus.COMPLETED, EventStatus.CANCELLED))
+    def test_post_completed_or_cancelled_event_returns_invalid_event_transition(self, user, verified_client, status):
+        event = EventFactory.create(user=user, status=status)
+
+        response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.INVALID_EVENT_TRANSITION
+
+    def test_post_draft_event_returns_invalid_event_transition(self, user, verified_client):
+        event = EventFactory.create(user=user, status=EventStatus.DRAFT)
+
+        response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.INVALID_EVENT_TRANSITION
