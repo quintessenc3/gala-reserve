@@ -62,3 +62,16 @@ class EventUpdateSerializer(serializers.ModelSerializer):
                 'Вместимость мероприятия должна быть больше или равна кол-ву активных регистраций.'
             )
         )
+
+
+class EventImageUploadSerializer(serializers.ModelSerializer):
+    '''
+    Сериализатор входных данных для обновления изображения мероприятия.
+    '''
+
+    class Meta:
+        model = Event
+        fields = ('image',)
+        extra_kwargs = {
+            'image': {'required': True}
+        }
