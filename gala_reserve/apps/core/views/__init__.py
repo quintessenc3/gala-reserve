@@ -1,3 +1,5 @@
+import logging
+
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from rest_framework import exceptions, status
@@ -5,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework.views import set_rollback
 
 from apps.core.exceptions import DomainError
+
+logger = logging.getLogger(__name__)
 
 
 def exception_handler(exc, context):
@@ -40,6 +44,14 @@ def exception_handler(exc, context):
         response_error['code'] = exc.code
         response_error['message'] = exc.message
     else:
+        extra = None
+        if context is not None and 'request' in context:
+            extra = {
+                'request_method': context['request'].method,
+                'request_path': context['request'].path,
+            }
+        logger.exception('Unhandled exception occurred', extra=extra)
+
         status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         response_error['code'] = 'internal_error'
         response_error['message'] = 'Internal server error'
