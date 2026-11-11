@@ -1,5 +1,6 @@
 from django.urls import path
 
+from apps.events.views.booking import RegisterFreeEventView
 from apps.events.views.categories import (
     ListCreateCategoryView,
     RetrieveUpdateDeleteCategoryView,
@@ -19,5 +20,6 @@ urlpatterns = [
     path('events/<int:id>/', RetrieveUpdateEventView.as_view(), name='retrieve-update-event'),
     path('events/<int:id>/image/', UploadEventImageView.as_view(), name='upload-event-image'),
     path('events/<int:id>/publish/', EventPublishView.as_view(), name='publish-event'),
-    path('events/<int:id>/cancel/', EventCancelView.as_view(), name='cancel-event')
+    path('events/<int:id>/cancel/', EventCancelView.as_view(), name='cancel-event'),
+    path('events/<int:id>/registrations/', RegisterFreeEventView.as_view(), name='register-free-event')
 ]
