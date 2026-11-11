@@ -120,7 +120,7 @@ class RetrieveUpdateEventView(RetrieveAPIView):
     lookup_url_kwarg = 'id'
 
     def get_queryset(self):
-        return EventSelector.visible_to(viewer=self.request.user)
+        return EventSelector.visible_to(viewer=self.request.user).select_related('user')
 
     def get_permissions(self):
         if self.request.method == 'GET':
@@ -161,7 +161,7 @@ class UploadEventImageView(GenericAPIView):
     serializer_class = EventImageUploadSerializer
     permission_classes = (IsOwnerOrAdmin,)
     parser_classes = (MultiPartParser,)
-    queryset = Event.objects.all()
+    queryset = Event.objects.all().select_related('user')
     lookup_url_kwarg = 'id'
 
     def put(self, request: Request, *args, **kwargs) -> Response:
@@ -194,7 +194,7 @@ class EventPublishView(GenericAPIView):
 
     serializer_class = EventOutputSerializer
     permission_classes = (IsOwnerOrAdmin,)
-    queryset = Event.objects.all()
+    queryset = Event.objects.all().select_related('user')
     lookup_url_kwarg = 'id'
 
     def post(self, request: Request, *args, **kwargs) -> Response:
@@ -226,7 +226,7 @@ class EventCancelView(GenericAPIView):
 
     serializer_class = EventOutputSerializer
     permission_classes = (IsOwnerOrAdmin,)
-    queryset = Event.objects.all()
+    queryset = Event.objects.all().select_related('user')
     lookup_url_kwarg = 'id'
 
     def post(self, request: Request, *args, **kwargs) -> Response:
