@@ -10,7 +10,7 @@ from rest_framework.exceptions import ValidationError
 
 
 class TestEventFilter:
-    def filtered_event_ids(data):
+    def filtered_event_ids(self, data):
         return list(
             EventFilter(data=data, queryset=Event.objects.all()).qs.values_list('pk', flat=True)
         )
