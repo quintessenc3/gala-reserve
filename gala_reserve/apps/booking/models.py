@@ -53,6 +53,7 @@ class Registration(models.Model):
     class Meta:
         verbose_name = 'Регистрация'
         verbose_name_plural = 'Регистрации'
+        ordering = ('id',)
         constraints = (
             UniqueConstraint(
                 fields=['user', 'event'],
