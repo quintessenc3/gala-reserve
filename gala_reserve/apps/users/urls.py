@@ -13,6 +13,7 @@ from apps.users.views.auth import (
 from apps.users.views.my_profile import (
     MyEventsView,
     MyProfileView,
+    MyRegistrationsView,
     PasswordResetByOldPasswordView,
 )
 
@@ -27,5 +28,6 @@ urlpatterns = [
     path('auth/password-reset/confirm', PasswordResetByCodeView.as_view(), name='password-reset-confirm'),
     path('users/me/', MyProfileView.as_view(), name='my-profile'),
     path('users/me/password', PasswordResetByOldPasswordView.as_view(), name='my-profile-password-reset'),
-    path('users/me/events/', MyEventsView.as_view(), name='my-events')
+    path('users/me/events/', MyEventsView.as_view(), name='my-events'),
+    path('users/me/registrations/', MyRegistrationsView.as_view(), name='my-registrations')
 ]
