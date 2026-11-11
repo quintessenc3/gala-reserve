@@ -1,6 +1,6 @@
 import factory
 
-from apps.booking.models import Registration, RegistrationStatus
+from apps.booking.models import Registration, RegistrationStatus, Ticket, TicketStatus
 from apps.events.factories import EventFactory
 from apps.users.factories import UserFactory
 
@@ -16,3 +16,17 @@ class RegistrationFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = Registration
+
+
+class TicketFactory(factory.django.DjangoModelFactory):
+    '''
+    Фабрика Ticket.
+    '''
+
+    registration = factory.SubFactory(RegistrationFactory)
+    user = factory.SelfAttribute('registration.user')
+    event = factory.SelfAttribute('registration.event')
+    status = TicketStatus.VALID
+
+    class Meta:
+        model = Ticket
