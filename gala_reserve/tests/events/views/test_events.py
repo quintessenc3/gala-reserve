@@ -52,14 +52,25 @@ class TestListCreateEventView:
         self.url = reverse('list-create-event')
 
     def test_get_success_and_is_paginated(self, api_client):
-        EventFactory.create(status=EventStatus.PUBLISHED)
+        matching_event = EventFactory.create(
+            status=EventStatus.PUBLISHED,
+            category=self.category,
+            title='Matching filter smoke test',
+        )
+        EventFactory.create(
+            status=EventStatus.PUBLISHED,
+            title='Matching filter smoke test',
+        )
 
-        response = api_client.get(self.url)
+        response = api_client.get(
+            self.url,
+            data={'search': 'Matching filter smoke test', 'category': self.category.pk},
+        )
 
         assert response.status_code == 200
         assert {'count', 'next', 'previous', 'results'} == set(response.json().keys())
         assert response.json()['count'] == 1
-        assert len(response.json()['results']) == 1
+        assert response.json()['results'][0]['id'] == matching_event.pk
 
     def test_get_returns_only_events_not_in_draft_status(self, api_client):
         published_event = EventFactory.create(status=EventStatus.PUBLISHED)
