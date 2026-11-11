@@ -1,3 +1,4 @@
+from apps.booking.factories import RegistrationFactory
 from apps.events.factories import EventFactory
 from apps.events.models import EventStatus
 from apps.users.factories import UserFactory
@@ -70,3 +71,28 @@ class TestMyEventsView:
 
         assert response.status_code == 403
         assert response.json()['error']['code'] == 'permission_denied'
+
+
+class TestMyRegistrationsView:
+    def test_get_success_and_is_paginated_with_only_users_registrations(self, user, other_user, auth_client):
+        user_registrations = [
+            RegistrationFactory.create(user=user),
+            RegistrationFactory.create(user=user),
+        ]
+        RegistrationFactory.create(user=other_user)
+
+        response = auth_client.get(reverse('my-registrations'))
+        response_body = response.json()
+
+        assert response.status_code == 200
+        assert {'count', 'next', 'previous', 'results'} == set(response_body.keys())
+        assert response_body['count'] == len(user_registrations)
+        assert {registration['id'] for registration in response_body['results']} == {
+            registration.pk for registration in user_registrations
+        }
+
+    def test_get_requires_authentication(self, api_client):
+        response = api_client.get(reverse('my-registrations'))
+
+        assert response.status_code == 401
+        assert response.json()['error']['code'] == 'not_authenticated'
