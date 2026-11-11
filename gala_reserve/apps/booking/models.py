@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Index, Q, UniqueConstraint
@@ -66,5 +68,55 @@ class Registration(models.Model):
             Index(
                 fields=['user', 'status', '-created_at'],
                 name='reg_status_desc_created_at_idx'
+            )
+        )
+
+
+class TicketStatus(models.TextChoices):
+    VALID = 'valid', 'Действительный'
+    USED = 'used', 'Использованный'
+    CANCELLED = 'Недействительный'
+
+class Ticket(models.Model):
+    '''
+    Модель билета.
+    '''
+
+    id = models.UUIDField(
+        'UUID билета', 
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    registration = models.OneToOneField(Registration, models.PROTECT, related_name='ticket')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, models.PROTECT, related_name='users')
+    event = models.ForeignKey(Event, models.PROTECT, related_name='tickets')
+    status = models.CharField(
+        'Статус', 
+        max_length=50, 
+        choices=TicketStatus.choices, 
+        default=TicketStatus.VALID,
+        blank=True
+    )
+    created_at = models.DateTimeField('Дата и время создания', auto_now_add=True, editable=False)
+    used_at = models.DateTimeField('Дата и время использования', null=True, blank=True)
+
+    def __repr__(self):
+        return f'<Ticket (user={self.user_id}, registration={self.registration_id})>'
+
+    def __str__(self):
+        return f'Билет {self.id} ({self.get_status_display().lower()})'
+
+    class Meta:
+        verbose_name = 'Билет'
+        verbose_name_plural = 'Билеты'
+        indexes = (
+            Index(
+                fields=['user', 'status'],
+                name='ticket_user_status_idx'
+            ),
+            Index(
+                fields=['event', 'status'],
+                name='ticket_event_status_idx'
             )
         )
