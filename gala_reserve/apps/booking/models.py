@@ -17,7 +17,7 @@ class RegistrationCancelReason(models.TextChoices):
 
 class Registration(models.Model):
     '''
-    Модель регистрации на мероприятие.
+    Модель регистрации на бесплатное мероприятие.
     '''
 
     user = models.ForeignKey(
