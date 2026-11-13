@@ -5,8 +5,12 @@ from rest_framework.mixins import UpdateModelMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.booking.selectors import RegistrationSelector
-from apps.booking.serializers.registrations import RegistrationOutputSerializer
+from apps.booking.filters import RegistrationFilter, TicketFilter
+from apps.booking.selectors import RegistrationSelector, TicketSelector
+from apps.booking.serializers.registrations import (
+    RegistrationOutputSerializer,
+    TicketOutputSerializer,
+)
 from apps.core.serializers import MessageOutputSerializer
 from apps.events.selectors import EventSelector
 from apps.events.serializers.events import EventOutputSerializer
@@ -18,7 +22,6 @@ from apps.users.serializers.my_profile import (
     PasswordResetByOldPasswordInputSerializer,
 )
 from apps.users.services.auth import user_reset_password_by_old_password
-from apps.booking.filters import RegistrationFilter
 
 
 @extend_schema_view(
@@ -129,3 +132,32 @@ class MyRegistrationsView(ListAPIView):
             .my_registrations(viewer=self.request.user)
             .select_related('event')
         )
+
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=['Users'],
+        summary='Получить список своих билетов на мероприятия',
+        description='Получает список своих билетов на мероприятия.',
+        responses={
+            200: TicketOutputSerializer,
+            401: OpenApiResponse(description='Неверный или истекший access-токен')
+        }
+    )
+)
+class MyTicketsView(ListAPIView):
+    '''
+    Представление для просмотра своих билетов.
+    '''
+
+    serializer_class = TicketOutputSerializer
+    filterset_class = TicketFilter
+
+    def get_queryset(self):
+        return (
+            TicketSelector
+            .my_tickets(viewer=self.request.user)
+            .select_related('event')
+        )
+
+    

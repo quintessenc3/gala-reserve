@@ -14,6 +14,7 @@ from apps.users.views.my_profile import (
     MyEventsView,
     MyProfileView,
     MyRegistrationsView,
+    MyTicketsView,
     PasswordResetByOldPasswordView,
 )
 
@@ -29,5 +30,6 @@ urlpatterns = [
     path('users/me/', MyProfileView.as_view(), name='my-profile'),
     path('users/me/password', PasswordResetByOldPasswordView.as_view(), name='my-profile-password-reset'),
     path('users/me/events/', MyEventsView.as_view(), name='my-events'),
-    path('users/me/registrations/', MyRegistrationsView.as_view(), name='my-registrations')
+    path('users/me/registrations/', MyRegistrationsView.as_view(), name='my-registrations'),
+    path('users/me/tickets/', MyTicketsView.as_view(), name='my-tickets'),
 ]
