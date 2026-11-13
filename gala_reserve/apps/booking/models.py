@@ -85,6 +85,8 @@ class Ticket(models.Model):
     Модель билета.
     '''
 
+    CHECKIN_OPENS_BEFORE_MINUTES = 60
+
     id = models.UUIDField(
         'UUID билета', 
         primary_key=True,
