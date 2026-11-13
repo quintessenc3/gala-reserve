@@ -113,6 +113,7 @@ class Ticket(models.Model):
     class Meta:
         verbose_name = 'Билет'
         verbose_name_plural = 'Билеты'
+        ordering = ('id',)
         indexes = (
             Index(
                 fields=['user', 'status'],
