@@ -1,8 +1,9 @@
-from apps.booking.factories import RegistrationFactory
+from django.urls import reverse
+
+from apps.booking.factories import RegistrationFactory, TicketFactory
 from apps.events.factories import EventFactory
 from apps.events.models import EventStatus
 from apps.users.factories import UserFactory
-from django.urls import reverse
 
 
 class TestMyProfileView:
@@ -93,6 +94,31 @@ class TestMyRegistrationsView:
 
     def test_get_requires_authentication(self, api_client):
         response = api_client.get(reverse('my-registrations'))
+
+        assert response.status_code == 401
+        assert response.json()['error']['code'] == 'not_authenticated'
+
+
+class TestMyTicketsView:
+    def test_get_success_and_is_paginated_with_only_users_tickets(self, user, other_user, auth_client):
+        user_tickets = [
+            TicketFactory.create(registration=RegistrationFactory.create(user=user)),
+            TicketFactory.create(registration=RegistrationFactory.create(user=user)),
+        ]
+        TicketFactory.create(registration=RegistrationFactory.create(user=other_user))
+
+        response = auth_client.get(reverse('my-tickets'))
+        response_body = response.json()
+
+        assert response.status_code == 200
+        assert {'count', 'next', 'previous', 'results'} == set(response_body.keys())
+        assert response_body['count'] == len(user_tickets)
+        assert {ticket['id'] for ticket in response_body['results']} == {
+            str(ticket.pk) for ticket in user_tickets
+        }
+
+    def test_get_requires_authentication(self, api_client):
+        response = api_client.get(reverse('my-tickets'))
 
         assert response.status_code == 401
         assert response.json()['error']['code'] == 'not_authenticated'
