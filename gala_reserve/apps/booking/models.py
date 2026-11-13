@@ -22,6 +22,8 @@ class Registration(models.Model):
     Модель регистрации на бесплатное мероприятие.
     '''
 
+    CANCEL_DEADLINE_HOURS = 24
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.PROTECT, 
