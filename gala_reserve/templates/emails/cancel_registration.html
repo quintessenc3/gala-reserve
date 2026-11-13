@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>Регистрация отменена</title>
+  <!--[if mso]>
+  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+  <![endif]-->
+  <style>
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0; mso-table-rspace: 0; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    a { color: #12263A; }
+
+    @media (max-width: 600px) {
+      .container { width: 100% !important; }
+      .px { padding-left: 20px !important; padding-right: 20px !important; }
+      .h1 { font-size: 24px !important; }
+      .event-title { font-size: 21px !important; line-height: 28px !important; }
+      .ticket-id { font-size: 14px !important; }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .bg-page { background-color: #0B141D !important; }
+      .bg-card { background-color: #132230 !important; }
+      .notch { background-color: #132230 !important; }
+      .ticket { background-color: #0A1722 !important; border: 1px solid #2B4258 !important; }
+      .note { background-color: #1B2F40 !important; border-left-color: #D97575 !important; }
+      .text-main { color: #F2F5F8 !important; }
+      .text-body { color: #C5D1DC !important; }
+      .text-muted { color: #8FA3B5 !important; }
+      .text-ticket { color: #F2F5F8 !important; }
+      .text-ticket-muted { color: #9FB3C4 !important; }
+      .divider { border-top-color: #26394A !important; }
+      a { color: #F2B632 !important; }
+    }
+  </style>
+</head>
+
+<body class="bg-page" style="margin:0; padding:0; background-color:#E9EEF2;">
+
+  <!-- Прехедер: текст, который почтовый клиент показывает рядом с темой письма -->
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#E9EEF2; opacity:0;">
+    Регистрация на мероприятие «{{ event.title }}» отменена. Билет аннулирован.
+    &zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
+  </div>
+
+  <table role="presentation" class="bg-page" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#E9EEF2" style="background-color:#E9EEF2;">
+    <tr>
+      <td align="center" style="padding:32px 12px;">
+
+        <!--[if mso]><table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+        <table role="presentation" class="container" width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px; max-width:560px;">
+
+          <!-- Шапка -->
+          <tr>
+            <td class="px" bgcolor="#12263A" style="background-color:#12263A; border-top:4px solid #F2B632; border-radius:12px 12px 0 0; padding:22px 32px;">
+              <span style="font-family:Georgia,'Times New Roman',serif; font-size:22px; line-height:28px; font-weight:bold; color:#FFFFFF;">
+                GalaReserve
+              </span>
+            </td>
+          </tr>
+
+          <!-- Основной блок -->
+          <tr>
+            <td class="px bg-card" bgcolor="#FFFFFF" style="background-color:#FFFFFF; border-radius:0 0 12px 12px; padding:36px 32px 32px;">
+
+              <h1 class="h1 text-main" style="margin:0 0 16px; font-family:Georgia,'Times New Roman',serif; font-size:28px; line-height:34px; font-weight:bold; color:#12263A;">
+                Регистрация отменена
+              </h1>
+
+              <p class="text-body" style="margin:0 0 8px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:24px; color:#2F4252;">
+                Здравствуйте, {{ registration.user.first_name|default:registration.user.username }}!
+              </p>
+              <p class="text-body" style="margin:0 0 28px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:24px; color:#2F4252;">
+                Вы отменили регистрацию на мероприятие. Ваш билет аннулирован, а место больше не закреплено за вами. Ниже приведены сведения об отменённой регистрации.
+              </p>
+
+              <!-- Аннулированный билет -->
+              <table role="presentation" class="ticket" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#12263A" style="background-color:#12263A; border:1px solid #12263A; border-radius:12px;">
+                <tr>
+                  <td align="center" style="padding:26px 22px 22px;">
+                    <div class="text-ticket-muted" style="margin:0 0 12px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:18px; letter-spacing:2px; text-transform:uppercase; color:#9FB3C4;">
+                      Регистрация отменена
+                    </div>
+                    <div class="event-title text-ticket" style="font-family:Georgia,'Times New Roman',serif; font-size:25px; line-height:32px; font-weight:bold; color:#FFFFFF;">
+                      {{ event.title }}
+                    </div>
+                    <div class="text-ticket-muted" style="margin:9px 0 0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px; line-height:20px; color:#9FB3C4;">
+                      {{ event.category.name }}
+                    </div>
+                    <div style="display:inline-block; margin-top:18px; padding:7px 13px; border:1px solid #D97575; border-radius:20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:16px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; color:#F0A0A0;">
+                      Билет аннулирован
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Линия отрыва с вырезами по краям -->
+                <tr>
+                  <td style="padding:0;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td class="notch" width="12" height="24" bgcolor="#FFFFFF" style="width:12px; height:24px; background-color:#FFFFFF; border-radius:0 12px 12px 0; font-size:0; line-height:0;">&nbsp;</td>
+                        <td valign="middle" style="font-size:0; line-height:0;">
+                          <div style="border-top:2px dashed #3C5870; height:0; font-size:0; line-height:0;">&nbsp;</div>
+                        </td>
+                        <td class="notch" width="12" height="24" bgcolor="#FFFFFF" style="width:12px; height:24px; background-color:#FFFFFF; border-radius:12px 0 0 12px; font-size:0; line-height:0;">&nbsp;</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Данные мероприятия -->
+                <tr>
+                  <td style="padding:20px 24px 8px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td valign="top" style="padding:0 0 16px;">
+                          <div class="text-ticket-muted" style="margin:0 0 5px; font-size:12px; line-height:18px; color:#9FB3C4;">Начало</div>
+                          <div class="text-ticket" style="font-size:15px; line-height:22px; font-weight:bold; color:#FFFFFF;">{{ event.start_at|date:"d.m.Y, H:i" }}</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td valign="top" style="padding:0 0 16px;">
+                          <div class="text-ticket-muted" style="margin:0 0 5px; font-size:12px; line-height:18px; color:#9FB3C4;">Окончание</div>
+                          <div class="text-ticket" style="font-size:15px; line-height:22px; font-weight:bold; color:#FFFFFF;">{{ event.end_at|date:"d.m.Y, H:i" }}</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td valign="top" style="padding:0 0 16px;">
+                          <div class="text-ticket-muted" style="margin:0 0 5px; font-size:12px; line-height:18px; color:#9FB3C4;">Место проведения</div>
+                          <div class="text-ticket" style="font-size:15px; line-height:22px; color:#FFFFFF;">{{ event.address }}</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td valign="top" style="padding:0 0 16px;">
+                          <div class="text-ticket-muted" style="margin:0 0 5px; font-size:12px; line-height:18px; color:#9FB3C4;">Организатор</div>
+                          <div class="text-ticket" style="font-size:15px; line-height:22px; color:#FFFFFF;">{{ event.user.get_full_name|default:event.user.username }}</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td valign="top" style="padding:0 0 16px;">
+                          <div class="text-ticket-muted" style="margin:0 0 5px; font-size:12px; line-height:18px; color:#9FB3C4;">Дата отмены регистрации</div>
+                          <div class="text-ticket" style="font-size:15px; line-height:22px; font-weight:bold; color:#FFFFFF;">{{ registration.cancelled_at|date:"d.m.Y, H:i" }}</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Идентификатор билета -->
+                <tr>
+                  <td align="center" style="padding:8px 24px 26px;">
+                    <div class="text-ticket-muted" style="margin:0 0 8px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:18px; color:#9FB3C4; letter-spacing:1px; text-transform:uppercase;">
+                      Идентификатор аннулированного билета
+                    </div>
+                    <div class="ticket-id" style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace; font-size:16px; line-height:24px; font-weight:bold; color:#F2B632; overflow-wrap:anywhere; word-break:break-word; -webkit-user-select:all; user-select:all;">
+                      {{ ticket.id }}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Информация об отмене -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;">
+                <tr>
+                  <td class="note" bgcolor="#FCEEEE" style="background-color:#FCEEEE; border-left:4px solid #D97575; border-radius:0 8px 8px 0; padding:14px 16px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px; line-height:21px; color:#2F4252;">
+                    <span class="text-body" style="color:#2F4252;">
+                      Регистрация на мероприятие отменена. Билет больше нельзя использовать для прохода.
+                    </span>
+                  </td>
+                </tr>
+              </table>
+
+              <div class="divider" style="margin:28px 0 20px; border-top:1px solid #E3E8EE; height:0; font-size:0; line-height:0;">&nbsp;</div>
+
+              <p class="text-muted" style="margin:0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px; line-height:21px; color:#5B6B7A;">
+                Это автоматическое уведомление об отмене регистрации. Если вы не отменяли регистрацию самостоятельно, свяжитесь со службой поддержки GalaReserve.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Подвал -->
+          <tr>
+            <td class="px" align="center" style="padding:20px 32px 0;">
+              <p class="text-muted" style="margin:0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:18px; color:#7A8896;">
+                Это автоматическое письмо, отвечать на него не нужно.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
