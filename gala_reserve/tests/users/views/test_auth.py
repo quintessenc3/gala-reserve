@@ -180,6 +180,18 @@ class TestCodeResendView:
         assert response.status_code == 409
         assert response.json()['error']['code'] == error_codes.ALREADY_VERIFIED
 
+    def test_throttle(self, db, auth_client):
+        response = auth_client.get(reverse('email-resend'))
+        assert response.status_code != 429
+
+        for _ in range(2):
+            response = auth_client.get(reverse('email-resend'))
+            assert response.status_code == 429
+            assert response.json()['error'].get('retry_after', None) == '60'
+
+        response = auth_client.get(reverse('email-resend'))
+        assert response.status_code == 429
+        assert response.json()['error'].get('retry_after', None) == '3600'
 
 class TestRequestResetCodeView:
     def test_success(self, transactional_db, user, api_client, send_password_reset_email_mock):
