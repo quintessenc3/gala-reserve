@@ -29,3 +29,8 @@ class EmailResendUserThrottle(UserRateThrottle):
 class PasswordResetAnonThrottle(AnonRateThrottle):
     scope = 'password_reset'
     rate = '5/hour'
+
+
+class PasswordResetUserThrottle(UserRateThrottle):
+    scope = 'password_reset_user'
+    rate = '5/hour'
