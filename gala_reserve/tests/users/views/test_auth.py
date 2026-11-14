@@ -285,6 +285,15 @@ class TestPasswordResetByCodeView:
         user.refresh_from_db()
         assert not user.check_password(self.new_password)
 
+    def test_throttle(self, db, api_client):
+        for _ in range(5):
+            response = api_client.post(reverse('password-reset-confirm'), {}, format='json')
+            assert response.status_code != 429
+
+        response = api_client.post(reverse('password-reset-confirm'), {}, format='json')
+        assert response.status_code == 429
+        assert response.json()['error'].get('retry_after', None) == '3600'
+
 
 class TestPasswordResetByOldPasswordView:
     @pytest.fixture(autouse=True)
