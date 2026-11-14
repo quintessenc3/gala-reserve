@@ -53,6 +53,17 @@ class TestRegisterView:
         assert response.json()['error'].get('retry_after', None) == '3600'
 
 
+class TestTokenObtainPairView:
+    def test_throttle(self, db, api_client):
+        for _ in range(10):
+            response = api_client.post(reverse('token'), {}, format='json')
+            assert response.status_code != 429
+
+        response = api_client.post(reverse('token'), {}, format='json')
+        assert response.status_code == 429
+        assert response.json()['error'].get('retry_after', None) == '60'
+
+
 class TestEmailVerifyView:
     @pytest.fixture(autouse=True)
     def setup(self, db, user):
