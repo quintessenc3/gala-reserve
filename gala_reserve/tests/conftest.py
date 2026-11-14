@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 from apps.users.factories import UserFactory
+from django.core.cache import cache
 from pytest_mock import MockerFixture
 from rest_framework.test import APIClient
 
@@ -47,3 +48,8 @@ def send_password_reset_email_mock(mocker: MockerFixture):
 @pytest.fixture
 def serializer_context(user):
     return {'request': SimpleNamespace(user=user)}
+
+
+@pytest.fixture(autouse=True)
+def _clear_throttle_cache():
+    cache.clear()
