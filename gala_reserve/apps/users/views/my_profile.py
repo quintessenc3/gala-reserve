@@ -22,6 +22,7 @@ from apps.users.serializers.my_profile import (
     PasswordResetByOldPasswordInputSerializer,
 )
 from apps.users.services.auth import user_reset_password_by_old_password
+from apps.users.throttles import PasswordResetUserThrottle
 
 
 @extend_schema_view(
@@ -82,6 +83,7 @@ class PasswordResetByOldPasswordView(GenericAPIView):
     '''
 
     serializer_class = PasswordResetByOldPasswordInputSerializer
+    throttle_classes = (PasswordResetUserThrottle,)
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
