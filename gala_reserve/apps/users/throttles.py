@@ -14,3 +14,13 @@ class LoginAnonThrottle(AnonRateThrottle):
 class EmailVerifyUserThrottle(UserRateThrottle):
     scope = 'email_verify'
     rate = '10/hour'
+
+
+class EmailResendPauseUserThrottle(UserRateThrottle):
+    scope = 'email_resend_pause'
+    rate = '1/minute'
+
+
+class EmailResendUserThrottle(UserRateThrottle):
+    scope = 'email_resend'
+    rate = '3/hour'
