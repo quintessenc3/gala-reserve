@@ -36,6 +36,7 @@ from apps.users.services.auth import (
     user_request_password_reset_code,
     user_reset_password_by_code,
 )
+from apps.users.throttles import RegisterAnonThrottle
 
 
 @extend_schema_view(
@@ -71,6 +72,7 @@ class RegisterView(CreateAPIView):
     serializer_class = RegisterInputSerializer
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = (RegisterAnonThrottle,)
 
     def create(self, request, *args, **kwargs):
         input_serializer = self.get_serializer(data=request.data)
