@@ -1,6 +1,7 @@
 import random
 from datetime import timedelta
 
+import freezegun
 import pytest
 from apps.core import error_codes
 from apps.users.factories import UserFactory
@@ -41,6 +42,15 @@ class TestRegisterView:
 
         assert response.status_code == 400
         assert 'email' in response.json()['error']['details']
+
+    def test_throttle(self, db, api_client):
+        for _ in range(5):
+            response = api_client.post(reverse('register'), {}, format='json')
+            assert response.status_code != 429
+
+        response = api_client.post(reverse('register'), {}, format='json')
+        assert response.status_code == 429
+        assert response.json()['error'].get('retry_after', None) == '3600'
 
 
 class TestEmailVerifyView:
