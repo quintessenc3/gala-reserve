@@ -36,7 +36,11 @@ from apps.users.services.auth import (
     user_request_password_reset_code,
     user_reset_password_by_code,
 )
-from apps.users.throttles import LoginAnonThrottle, RegisterAnonThrottle
+from apps.users.throttles import (
+    EmailVerifyUserThrottle,
+    LoginAnonThrottle,
+    RegisterAnonThrottle,
+)
 
 
 @extend_schema_view(
@@ -150,6 +154,7 @@ class EmailVerifyView(GenericAPIView):
     '''
 
     serializer_class = EmailVerifyInputSerializer
+    throttle_classes = (EmailVerifyUserThrottle,)
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
