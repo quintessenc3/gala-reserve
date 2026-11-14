@@ -338,3 +338,12 @@ class TestPasswordResetByOldPasswordView:
 
         assert response.status_code == 400
         assert response.json()['error']['code'] == error_codes.PASSWORDS_DO_NOT_MATCH
+
+    def test_throttle(self, auth_client):
+        for _ in range(5):
+            response = auth_client.post(reverse('my-profile-password-reset'), {}, format='json')
+            assert response.status_code != 429
+
+        response = auth_client.post(reverse('my-profile-password-reset'), {}, format='json')
+        assert response.status_code == 429
+        assert response.json()['error'].get('retry_after', None) == '3600'
