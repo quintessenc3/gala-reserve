@@ -37,6 +37,8 @@ from apps.users.services.auth import (
     user_reset_password_by_code,
 )
 from apps.users.throttles import (
+    EmailResendPauseUserThrottle,
+    EmailResendUserThrottle,
     EmailVerifyUserThrottle,
     LoginAnonThrottle,
     RegisterAnonThrottle,
@@ -180,6 +182,8 @@ class CodeResendView(GenericAPIView):
     '''
     Представление для повторной отправки письма с верификационным кодом.
     '''
+
+    throttle_classes = (EmailResendPauseUserThrottle, EmailResendUserThrottle)
 
     def get(self, request: Request, *args, **kwargs) -> Response:
         otp_resend(user_id=request.user.pk)
