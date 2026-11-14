@@ -41,6 +41,7 @@ from apps.users.throttles import (
     EmailResendUserThrottle,
     EmailVerifyUserThrottle,
     LoginAnonThrottle,
+    PasswordResetAnonThrottle,
     RegisterAnonThrottle,
 )
 
@@ -266,6 +267,7 @@ class PasswordResetByCodeView(GenericAPIView):
 
     authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = (PasswordResetAnonThrottle,)
     serializer_class = PasswordResetByCodeInputSerializer
 
     def post(self, request: Request, *args, **kwargs) -> Response:
