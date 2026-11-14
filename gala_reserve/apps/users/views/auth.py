@@ -36,7 +36,7 @@ from apps.users.services.auth import (
     user_request_password_reset_code,
     user_reset_password_by_code,
 )
-from apps.users.throttles import RegisterAnonThrottle
+from apps.users.throttles import LoginAnonThrottle, RegisterAnonThrottle
 
 
 @extend_schema_view(
@@ -100,6 +100,8 @@ class TokenObtainPairView(_TokenObtainPairView):
     '''
     Представление для получения refresh и access токенов.
     '''
+
+    throttle_classes = (LoginAnonThrottle,)
 
 
 @extend_schema_view(
