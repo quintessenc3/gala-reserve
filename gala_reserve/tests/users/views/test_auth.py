@@ -137,6 +137,15 @@ class TestEmailVerifyView:
         assert response.status_code == 404
         assert response.json()['error']['code'] == 'not_found'
 
+    def test_throttle(self, db, auth_client):
+        for _ in range(10):
+            response = auth_client.post(reverse('email-verify'), {}, format='json')
+            assert response.status_code != 429
+
+        response = auth_client.post(reverse('email-verify'), {}, format='json')
+        assert response.status_code == 429
+        assert response.json()['error'].get('retry_after', None) == '3600'
+
 
 class TestCodeResendView:
     def test_success(self, user, auth_client):
