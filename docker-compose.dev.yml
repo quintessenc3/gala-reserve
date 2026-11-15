@@ -16,6 +16,9 @@ services:
   worker:
     <<: *dev
 
+  beat:
+    <<: *dev
+
   db:
     ports:
       - "5432:5432"
