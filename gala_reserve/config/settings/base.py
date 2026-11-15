@@ -153,6 +153,13 @@ CELERY_TASK_SOFT_TIME_LIMIT = 45
 CELERY_TASK_TIME_LIMIT = 60
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 500
 
+CELERY_BEAT_SCHEDULE = {
+    'complete_finished_events': {
+        'task': 'apps.events.tasks.events.complete_finished_events',
+        'schedule': timedelta(minutes=5)
+    }
+}
+
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
