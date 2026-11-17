@@ -1,13 +1,15 @@
-import socket  # noqa: N999
+# noqa: N999
+import os
+import socket
 
 bind = '0.0.0.0:8000'
 
-workers = 33
-threads = 132
+workers = int(os.getenv('GUNICORN_WORKERS', '1'))
+threads = int(os.getenv('GUNICORN_THREADS', '4'))
 worker_class = 'gthread'
 
 timeout = 30
-grateful_timeout = 30
+graceful_timeout = 30
 
 keepalive = 5
 
