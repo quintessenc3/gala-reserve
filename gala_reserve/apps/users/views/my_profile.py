@@ -6,12 +6,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.booking.filters import RegistrationFilter, TicketFilter
+from apps.booking.models import Registration, Ticket
 from apps.booking.selectors import RegistrationSelector, TicketSelector
 from apps.booking.serializers.registrations import (
     RegistrationOutputSerializer,
     TicketOutputSerializer,
 )
 from apps.core.serializers import MessageOutputSerializer
+from apps.events.models import Event
 from apps.events.selectors import EventSelector
 from apps.events.serializers.events import EventOutputSerializer
 from apps.users.models import User
@@ -106,6 +108,7 @@ class MyEventsView(ListAPIView):
     Представление для просмотра своих мероприятий.
     '''
 
+    queryset = Event.objects.none()
     serializer_class = EventOutputSerializer
     permission_classes = (IsVerified,)
 
@@ -125,6 +128,7 @@ class MyRegistrationsView(ListAPIView):
     Представление для просмотра своих регистраций на мероприятия.
     '''
 
+    queryset = Registration.objects.none()
     serializer_class = RegistrationOutputSerializer
     filterset_class = RegistrationFilter
     
@@ -152,6 +156,7 @@ class MyTicketsView(ListAPIView):
     Представление для просмотра своих билетов.
     '''
 
+    queryset = Ticket.objects.none()
     serializer_class = TicketOutputSerializer
     filterset_class = TicketFilter
 
