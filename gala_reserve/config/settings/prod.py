@@ -6,9 +6,9 @@ ALLOWED_HOSTS = ['localhost']
 
 REST_FRAMEWORK.update({
     'NUM_PROXIES': 1,
-    #'DEFAULT_RENDERER_CLASSES': [
-    #    'rest_framework.renderers.JSONRenderer'
-    #]
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer'
+    ]
 })
 
 USE_X_FORWARDED_HOST = True
