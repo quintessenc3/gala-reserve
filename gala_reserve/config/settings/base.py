@@ -136,7 +136,10 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     'SWAGGER_UI_SETTINGS': {
         'persistAuthorization': True,
-    }
+    },
+    'ENUM_NAME_OVERRIDES': {
+        'EventStatusEnum': 'apps.events.models.EventStatus',
+    },
 }
 
 SIMPLE_JWT = {
