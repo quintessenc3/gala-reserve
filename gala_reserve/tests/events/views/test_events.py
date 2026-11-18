@@ -3,13 +3,12 @@ from io import BytesIO
 
 import freezegun
 import pytest
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.urls import reverse
-from django.utils import timezone
-from PIL import Image
-
+from apps.booking.factories import RegistrationFactory, TicketFactory
+from apps.booking.models import (
+    RegistrationCancelReason,
+    RegistrationStatus,
+    TicketStatus,
+)
 from apps.core import error_codes
 from apps.core.services.images import (
     ImageDimensionsTooLargeError,
@@ -19,6 +18,12 @@ from apps.core.services.images import (
 )
 from apps.events.factories import CategoryFactory, EventFactory
 from apps.events.models import Event, EventStatus
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
+from django.utils import timezone
+from PIL import Image
 
 
 def make_uploaded_image(image_format='PNG', size=(200, 100)):
@@ -450,17 +455,50 @@ class TestEventCancelView:
     def test_post_success_for_owner_and_updates_status_and_updated_at(self, user, verified_client):
         with freezegun.freeze_time('2025-01-01 10:00:00'):
             event = EventFactory.create(user=user, status=EventStatus.PUBLISHED)
+            registration = RegistrationFactory.create(
+                event=event,
+                status=RegistrationStatus.CONFIRMED,
+            )
+            ticket = TicketFactory.create(registration=registration)
             original_updated_at = event.updated_at
 
         with freezegun.freeze_time('2025-01-01 10:15:00'):
+            cancelled_at = timezone.now()
             response = verified_client.post(self.get_url(event.pk))
             event.refresh_from_db()
+            registration.refresh_from_db()
+            ticket.refresh_from_db()
             updated_at = timezone.now()
 
         assert response.status_code == 200
         assert event.status == EventStatus.CANCELLED
         assert event.updated_at == updated_at
         assert event.updated_at != original_updated_at
+        assert registration.status == RegistrationStatus.CANCELLED
+        assert registration.cancel_reason == RegistrationCancelReason.EVENT_CANCELLED
+        assert registration.cancelled_at == cancelled_at
+        assert ticket.status == TicketStatus.CANCELLED
+
+    @pytest.mark.parametrize('seconds_until_start', (0, -1))
+    def test_post_started_event_returns_already_started(
+        self,
+        user,
+        verified_client,
+        seconds_until_start,
+    ):
+        with freezegun.freeze_time('2025-01-01 10:00:00'):
+            now = timezone.now()
+            event = EventFactory.create(
+                user=user,
+                status=EventStatus.PUBLISHED,
+                start_at=now + timedelta(seconds=seconds_until_start),
+                end_at=now + timedelta(days=1),
+            )
+
+            response = verified_client.post(self.get_url(event.pk))
+
+        assert response.status_code == 409
+        assert response.json()['error']['code'] == error_codes.EVENT_ALREADY_STARTED
 
     def test_post_success_for_admin(self, user, other_user, verified_client):
         user.is_staff = True
