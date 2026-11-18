@@ -18,6 +18,8 @@ x-prod: &prod
     options:
       max-size: "10m"
       max-file: "3"
+  volumes:
+    - media:/app/gala_reserve/media
 
 services:
   api:
@@ -43,6 +45,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./gala_reserve/staticfiles:/usr/share/staticfiles:ro
+      - media:/usr/share/media:ro
 
   db:
     restart: unless-stopped
@@ -50,3 +53,6 @@ services:
     restart: unless-stopped
   rabbitmq:
     restart: unless-stopped
+
+volumes:
+  media:
