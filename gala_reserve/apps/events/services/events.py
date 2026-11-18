@@ -1,8 +1,14 @@
 from django.core.files import File
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import exceptions, status
 
+from apps.booking.models import (
+    RegistrationCancelReason,
+    RegistrationStatus,
+    TicketStatus,
+)
 from apps.core import error_codes
 from apps.core.exceptions import DomainError
 from apps.core.services.images import process_image
@@ -42,6 +48,12 @@ class CancelAlreadyCompletedEventError(DomainError):
 class CancelDraftEventError(DomainError):
     code = error_codes.INVALID_EVENT_TRANSITION
     message = 'Нельзя отменить мероприятие в состоянии черновика.'
+    http_status = status.HTTP_409_CONFLICT
+
+
+class CancelAlreadyStartedEventError(DomainError):
+    code = error_codes.EVENT_ALREADY_STARTED
+    message = 'Нельзя отменить мероприятие, которое уже началось.'
     http_status = status.HTTP_409_CONFLICT
 
 
@@ -138,6 +150,31 @@ def event_cancel(*, event_id: int) -> Event:
             raise CancelAlreadyCompletedEventError
         elif event.status == EventStatus.DRAFT:
             raise CancelDraftEventError
+
+        if timezone.now() >= event.start_at:
+            raise CancelAlreadyStartedEventError
+
+        (
+            event.registrations
+            .filter(
+                ~Q(status=RegistrationStatus.CANCELLED),
+                cancel_reason='',
+                cancelled_at__isnull=True
+            )
+            .update(
+                status=RegistrationStatus.CANCELLED,
+                cancel_reason=RegistrationCancelReason.EVENT_CANCELLED,
+                cancelled_at=timezone.now()
+            )
+        )
+
+        (
+            event.tickets
+            .filter(status=TicketStatus.VALID)
+            .update(
+                status=TicketStatus.CANCELLED
+            )
+        )
 
         event.status = EventStatus.CANCELLED
         event.save(update_fields=['status', 'updated_at'])
