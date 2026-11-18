@@ -24,3 +24,5 @@ errorlog = '-'
 forwarded_allow_ips = ','.join([
     socket.gethostbyname('nginx')
 ])
+
+control_socket_disable = True
