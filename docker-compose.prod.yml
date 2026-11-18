@@ -32,7 +32,7 @@ services:
     command: celery -A config beat --loglevel=INFO --schedule=/var/lib/celery/celerybeat-schedule
 
   nginx:
-    image: nginx:1.28-alpine
+    image: nginx:1.30.7-alpine
     restart: unless-stopped
     depends_on:
       - api
