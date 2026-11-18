@@ -52,6 +52,12 @@ class Registration(models.Model):
     confirmed_at = models.DateTimeField('Дата и время подтверждения', null=True, blank=True)
     cancelled_at = models.DateTimeField('Дата и время отмены', null=True, blank=True)
 
+    def __repr__(self):
+        return f'<Registration #{self.pk} (user_id={self.user_id}, event_id={self.event_id}, status={self.status})>'
+    
+    def __str__(self):
+        return f'Регистрация #{self.pk} ({self.get_status_display().lower()})'
+
     class Meta:
         verbose_name = 'Регистрация'
         verbose_name_plural = 'Регистрации'

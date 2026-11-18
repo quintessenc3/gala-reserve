@@ -88,6 +88,12 @@ class OneTimeCode(models.Model):
     def is_reached_attempts_limit(self):
         return self.attempts >= OneTimeCode.MAX_ATTEMPTS
 
+    def __repr__(self):
+        return f'<OneTimeCode #{self.pk} (user_id={self.user_id}, purpose={self.purpose})>'
+    
+    def __str__(self):
+        return f'Одноразовый код #{self.pk}'
+
     class Meta:
         verbose_name = 'Одноразовый код'
         verbose_name_plural = 'Одноразовые коды'

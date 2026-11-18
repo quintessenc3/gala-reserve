@@ -23,6 +23,12 @@ class Category(models.Model):
     )
     created_at = models.DateTimeField('Дата и время создания', auto_now_add=True)
 
+    def __repr__(self):
+        return f'<Category #{self.pk} (name={self.name!r}, user_id={self.user_id})>'
+    
+    def __str__(self):
+        return f'Категория {self.name!r}'
+
     class Meta:
         verbose_name = 'Категория события'
         verbose_name_plural = 'Категории событий'
@@ -81,6 +87,12 @@ class Event(models.Model):
     created_at = models.DateTimeField('Дата и время создания', auto_now_add=True)
     updated_at = models.DateTimeField('Дата и время обновления', auto_now=True)
     published_at = models.DateTimeField('Дата и время публикации', null=True, blank=True)
+
+    def __repr__(self):
+        return f'<Event #{self.pk} (title={self.title!r}, user_id={self.user_id})>'
+    
+    def __str__(self):
+        return f'Мероприятие {self.title!r} ({self.get_status_display().lower()})'
 
     class Meta:
         verbose_name = 'Мероприятие'
