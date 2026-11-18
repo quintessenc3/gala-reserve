@@ -1,4 +1,5 @@
 from apps.events.factories import CategoryFactory, EventFactory
+from apps.events.models import EventStatus
 from apps.events.serializers.categories import (
     CategoryInputSerializer,
     CategoryOutputSerializer,
@@ -8,9 +9,13 @@ from apps.events.serializers.categories import (
 class TestCategoryOutputSerializer:
     def test_events_count_field(self, db):
         category = CategoryFactory.create()
+        other_category = CategoryFactory.create()
 
         for _ in range(3):
-            EventFactory.create(category=category)
+            EventFactory.create(category=category, status=EventStatus.PUBLISHED)
+        EventFactory.create(category=category, status=EventStatus.DRAFT)
+        for _ in range(2):
+            EventFactory.create(category=other_category, status=EventStatus.PUBLISHED)
 
         serializer = CategoryOutputSerializer(instance=category)
         assert serializer.data['events_count'] == 3
