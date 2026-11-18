@@ -140,6 +140,7 @@ SPECTACULAR_SETTINGS = {
     'ENUM_NAME_OVERRIDES': {
         'EventStatusEnum': 'apps.events.models.EventStatus',
     },
+    'COMPONENT_SPLIT_REQUEST': True
 }
 
 SIMPLE_JWT = {
