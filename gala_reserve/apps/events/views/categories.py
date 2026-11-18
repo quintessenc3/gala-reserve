@@ -26,7 +26,10 @@ from apps.users.permissions import IsOwnerOrAdmin, IsVerified
         tags=['Categories'],
         summary='Создать категорию',
         description='Создает категорию',
-        request=CategoryInputSerializer
+        request=CategoryInputSerializer,
+        responses={
+            201: CategoryOutputSerializer
+        }
     )
 )
 class ListCreateCategoryView(ListCreateAPIView):
@@ -50,6 +53,14 @@ class ListCreateCategoryView(ListCreateAPIView):
             return CategoryOutputSerializer
         elif self.request.method == 'POST':
             return CategoryInputSerializer
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        input_serializer = self.get_serializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+        instance = input_serializer.save()
+
+        output_serializer = CategoryOutputSerializer(instance=instance)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema_view(
@@ -83,9 +94,14 @@ class RetrieveUpdateDeleteCategoryView(RetrieveDestroyAPIView, UpdateModelMixin)
     категории по её ID.
     '''
 
-    serializer_class = CategoryInputSerializer
     queryset = Category.objects.all()
     lookup_url_kwarg = 'id'
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return CategoryOutputSerializer
+        elif self.request.method == 'PATCH':
+            return CategoryInputSerializer
 
     def get_permissions(self):
         if self.request.method == 'GET':
