@@ -16,6 +16,7 @@ USER_IN_PUBLISHED_EVENT_NOT_EDITABLE = 'user_in_published_event_no_editable'
 EVENT_NOT_PUBLISHABLE = 'event_not_publishable'
 INVALID_EVENT_TRANSITION = 'invalid_event_transition'
 CATEGORY_IN_USE = 'category_in_use'
+EVENT_ALREADY_STARTED = 'event_already_started'
 
 EVENT_NOT_PUBLISHED = 'event_not_published'
 REGISTRATION_CLOSED = 'registration_closed'
