@@ -17,15 +17,12 @@ services:
     <<: *prod
     expose: ["8000"]
     stop_grace_period: 35s
-    #healthcheck:
-    #  test: ["CMD", "python", "healthcheck.py"]
-    #  interval: 15s
-    #  timeout: 5s
-    #  retries: 3
-    #  start_period: 20s
 
   worker:
     <<: *prod
+  beat:
+    <<: *prod
+    command: celery -A config beat --loglevel=INFO --schedule=/var/lib/celery/celerybeat-schedule
 
   nginx:
     image: nginx:1.28-alpine

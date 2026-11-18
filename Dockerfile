@@ -28,6 +28,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN adduser -D --no-create-home --shell /usr/sbin/nologin app
 COPY . .
 WORKDIR /app/gala_reserve
-RUN chown -R app:app ./staticfiles ./media
+RUN chown -R app:app ./staticfiles ./media \
+    && mkdir -p /var/lib/celery \
+    && chown -R app:app /var/lib/celery
 USER app
 CMD ["gunicorn", "config.wsgi:application", "--config=./config/gunicorn.conf.py"]
