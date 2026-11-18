@@ -15,26 +15,26 @@ class DomainError(Exception):
         super().__init__(self.message)
 
 
-def django_exc_handler_stub(request, exc=None):
+def django_exc_handler_stub(request, exception=None):
     '''
     Заглушка для handler- функций в URLConf Django.
     '''
 
     from apps.core.views import exception_handler
 
-    if isinstance(exc, Http404):
-        exc = exceptions.NotFound(
+    if isinstance(exception, Http404):
+        exception = exceptions.NotFound(
             detail="Not found",
             code="not_found",
         )
     else:
-        exc = exceptions.APIException(
+        exception = exceptions.APIException(
             detail="Internal server error.",
             code="internal_error",
         )
 
     response = exception_handler(
-        exc,
+        exception,
         context={"request": request, "view": None},
     )
 
