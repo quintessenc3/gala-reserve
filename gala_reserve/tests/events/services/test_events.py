@@ -4,17 +4,17 @@ from io import BytesIO
 
 import freezegun
 import pytest
-from django.core.files.base import ContentFile
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.utils import timezone
-from PIL import Image
-from rest_framework import exceptions
-
-from apps.core import error_codes
+from apps.booking.factories import RegistrationFactory, TicketFactory
+from apps.booking.models import (
+    RegistrationCancelReason,
+    RegistrationStatus,
+    TicketStatus,
+)
 from apps.events.factories import EventFactory
 from apps.events.models import Event, EventStatus
 from apps.events.services.events import (
     CancelAlreadyCompletedEventError,
+    CancelAlreadyStartedEventError,
     CancelDraftEventError,
     CompleteOrCancelledEventNotEditable,
     EventNotPublishableError,
@@ -25,6 +25,11 @@ from apps.events.services.events import (
     event_set_image,
     event_update,
 )
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
+from PIL import Image
+from rest_framework import exceptions
 
 
 def make_image(image_format='PNG', size=(2000, 1000)):
@@ -237,6 +242,86 @@ class TestEventCancel:
         assert event.status == EventStatus.CANCELLED
         assert event.updated_at == updated_at
         assert event.updated_at != original_updated_at
+
+    def test_cancels_only_active_registrations_and_valid_tickets(self, user):
+        with freezegun.freeze_time('2025-01-01 10:00:00'):
+            event = EventFactory.create(user=user, status=EventStatus.PUBLISHED)
+            active_registration = RegistrationFactory.create(
+                event=event,
+                status=RegistrationStatus.CONFIRMED,
+            )
+            pending_registration = RegistrationFactory.create(
+                event=event,
+                status=RegistrationStatus.PENDING,
+            )
+            cancelled_at_before = timezone.now()
+            cancelled_registration = RegistrationFactory.create(
+                event=event,
+                status=RegistrationStatus.CANCELLED,
+                cancel_reason=RegistrationCancelReason.BY_USER,
+                cancelled_at=cancelled_at_before,
+            )
+            valid_ticket = TicketFactory.create(registration=active_registration)
+            used_at = timezone.now()
+            used_ticket = TicketFactory.create(
+                registration=pending_registration,
+                status=TicketStatus.USED,
+                used_at=used_at,
+            )
+            cancelled_ticket = TicketFactory.create(
+                registration=cancelled_registration,
+                status=TicketStatus.CANCELLED,
+            )
+
+        with freezegun.freeze_time('2025-01-01 10:15:00'):
+            cancelled_at = timezone.now()
+            event_cancel(event_id=event.pk)
+
+        active_registration.refresh_from_db()
+        pending_registration.refresh_from_db()
+        cancelled_registration.refresh_from_db()
+        valid_ticket.refresh_from_db()
+        used_ticket.refresh_from_db()
+        cancelled_ticket.refresh_from_db()
+
+        assert active_registration.status == RegistrationStatus.CANCELLED
+        assert active_registration.cancel_reason == RegistrationCancelReason.EVENT_CANCELLED
+        assert active_registration.cancelled_at == cancelled_at
+        assert pending_registration.status == RegistrationStatus.CANCELLED
+        assert pending_registration.cancel_reason == RegistrationCancelReason.EVENT_CANCELLED
+        assert pending_registration.cancelled_at == cancelled_at
+        assert cancelled_registration.status == RegistrationStatus.CANCELLED
+        assert cancelled_registration.cancel_reason == RegistrationCancelReason.BY_USER
+        assert cancelled_registration.cancelled_at == cancelled_at_before
+        assert valid_ticket.status == TicketStatus.CANCELLED
+        assert used_ticket.status == TicketStatus.USED
+        assert used_ticket.used_at == used_at
+        assert cancelled_ticket.status == TicketStatus.CANCELLED
+
+    @pytest.mark.parametrize('seconds_until_start', (0, -1))
+    def test_event_cannot_be_cancelled_at_or_after_start(self, user, seconds_until_start):
+        with freezegun.freeze_time('2025-01-01 10:00:00'):
+            now = timezone.now()
+            event = EventFactory.create(
+                user=user,
+                status=EventStatus.PUBLISHED,
+                start_at=now + timedelta(seconds=seconds_until_start),
+                end_at=now + timedelta(days=1),
+            )
+            registration = RegistrationFactory.create(event=event)
+            ticket = TicketFactory.create(registration=registration)
+            original_updated_at = event.updated_at
+
+            with pytest.raises(CancelAlreadyStartedEventError):
+                event_cancel(event_id=event.pk)
+
+        event.refresh_from_db()
+        registration.refresh_from_db()
+        ticket.refresh_from_db()
+        assert event.status == EventStatus.PUBLISHED
+        assert event.updated_at == original_updated_at
+        assert registration.status == RegistrationStatus.PENDING
+        assert ticket.status == TicketStatus.VALID
 
     def test_event_does_not_exist(self, db):
         with pytest.raises(exceptions.NotFound):
