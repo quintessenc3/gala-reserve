@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from apps.events.models import Category
+from apps.events.selectors import EventSelector
 
 
 class CategoryOutputSerializer(serializers.ModelSerializer):
@@ -9,7 +10,10 @@ class CategoryOutputSerializer(serializers.ModelSerializer):
     Сериализатор выходных данных категории.
     '''
 
-    events_count = serializers.IntegerField(source='events.count')
+    events_count = serializers.SerializerMethodField()
+
+    def get_events_count(self, obj: Category) -> int:
+        return EventSelector.public_events().filter(category=obj).count()
 
     class Meta:
         model = Category
