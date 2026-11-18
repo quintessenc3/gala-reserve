@@ -6,8 +6,10 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import exceptions, status
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import (
+    BlacklistedToken,
+    OutstandingToken,
+)
 
 from apps.core import error_codes
 from apps.core.exceptions import DomainError
@@ -289,4 +291,4 @@ def _revoke_all_refresh_tokens(*, user: User) -> None:
         )
 
         for token in tokens:
-            RefreshToken(token.token).blacklist()
+            BlacklistedToken.objects.get_or_create(token=token)
