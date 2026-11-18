@@ -3,6 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from environ import Env
+from kombu import Queue
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -156,6 +157,26 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 0
 CELERY_TASK_SOFT_TIME_LIMIT = 45
 CELERY_TASK_TIME_LIMIT = 60
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 500
+CELERY_TASK_DEFAULT_QUEUE = 'default'
+CELERY_TASK_QUEUES = (
+    Queue('default'),
+    Queue('emails')
+)
+CELERY_TASK_ROUTES = {
+    'apps.users.tasks.auth.send_verification_email': {
+        'queue': 'emails'
+    },
+    'apps.users.tasks.auth.send_password_reset_email': {
+        'queue': 'emails'
+    },
+    'apps.events.tasks.events.complete_finished_events': {
+        'queue': 'default'
+    },
+    'apps.events.tasks.booking.send_ticket_email': {
+        'queue': 'emails'
+    },
+}
+CELERY_IMPORTS = ('apps.events.tasks.events',)
 
 CELERY_BEAT_SCHEDULE = {
     'complete_finished_events': {
