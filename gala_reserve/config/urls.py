@@ -3,6 +3,7 @@ import sys
 
 from apps.core.exceptions import django_exc_handler_stub
 from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import (
@@ -26,9 +27,12 @@ urlpatterns = [
 
 TESTING = "test" in sys.argv or "PYTEST_VERSION" in os.environ
 
-if not TESTING and settings.DEBUG:
-    from debug_toolbar.toolbar import debug_toolbar_urls
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    
+    if not TESTING:
+        from debug_toolbar.toolbar import debug_toolbar_urls
 
-    urlpatterns = [
-        *urlpatterns,
-    ] + debug_toolbar_urls()
+        urlpatterns = [
+            *urlpatterns,
+        ] + debug_toolbar_urls()
