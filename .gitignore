@@ -114,9 +114,6 @@ ENV/
 # !**/migrations
 # !**/migrations/__init__.py
 
-media/
-!media/.gitkeep
-
 staticfiles/
 !staticfiles/.gitkeep
 
