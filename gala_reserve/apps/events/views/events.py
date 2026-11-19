@@ -70,7 +70,7 @@ class ListCreateEventView(ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'GET':
-            return []
+            return [AllowAny()]
 
         return [IsVerified()]
 

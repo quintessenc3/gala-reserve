@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView
 from rest_framework.mixins import UpdateModelMixin
+from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -44,7 +45,7 @@ class ListCreateCategoryView(ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'GET':
-            return []
+            return [AllowAny()]
         elif self.request.method == 'POST':
             return [IsVerified()]
 
@@ -105,7 +106,7 @@ class RetrieveUpdateDeleteCategoryView(RetrieveDestroyAPIView, UpdateModelMixin)
 
     def get_permissions(self):
         if self.request.method == 'GET':
-            return []
+            return [AllowAny()]
         elif self.request.method in ('PATCH', 'DELETE'):
             return [IsOwnerOrAdmin()]
 
