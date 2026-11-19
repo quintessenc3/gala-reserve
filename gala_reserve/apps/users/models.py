@@ -21,6 +21,9 @@ class User(AbstractUser):
     DEFAULT_PHOTO = PHOTO_DIRECTORY / 'default_avatar.webp'
     MIN_USERNAME_LENGTH = 3
     MAX_USERNAME_LENGTH = 30
+    MAX_PHOTO_FILE_SIZE_BYTES = 2 * 1024 * 1024
+    MAX_PHOTO_RESOLUTION = (4096, 4096)
+    THUMBNAIL_SIZE_PX = (512, 512)
 
     username = models.CharField(
         'Имя пользователя',
