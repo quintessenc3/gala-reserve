@@ -1,6 +1,9 @@
+from pathlib import Path
+
 import pytest
 from apps.users.factories import UserFactory
 from apps.users.models import User
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
@@ -12,6 +15,17 @@ def test_normal_user_full_clean(db):
 
 def test_normal_user_save(db):
     UserFactory.create()
+
+
+def test_default_photo(db):
+    user = User.objects.create_user(
+        username='test_user',
+        email='test@example.com',
+    )
+
+    assert user.photo.name == str(User.DEFAULT_PHOTO)
+    assert user.photo.url == f'{settings.MEDIA_URL}{user.photo.name}'
+    assert (Path(settings.MEDIA_ROOT) / user.photo.name).is_file()
 
 
 @pytest.mark.parametrize('username', [
