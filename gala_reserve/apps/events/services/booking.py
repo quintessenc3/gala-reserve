@@ -34,7 +34,19 @@ class NoSeatsAvailableError(DomainError):
     http_status = status.HTTP_409_CONFLICT
 
 
-def _try_register(*, event_id, user_id: int) -> Registration:
+class PaymentRequiredError(DomainError):
+    code = error_codes.PAYMENT_REQUIRED
+    message = 'Для регистрации на это мероприятие требуется оплата.'
+    http_status = status.HTTP_409_CONFLICT
+
+
+class EventIsFreeError(DomainError):
+    code = error_codes.EVENT_IS_FREE
+    message = 'Это бесплатное мероприятие, и оно не требует оплаты.'
+    http_status = status.HTTP_409_CONFLICT
+
+
+def _try_register(*, event_id: int, user_id: int, is_free: bool) -> Registration:
     '''
     Сервис, для валидации доступности мероприятия и создания 
     регистрации.
@@ -47,6 +59,11 @@ def _try_register(*, event_id, user_id: int) -> Registration:
     user = User.objects.select_for_update().filter(pk=user_id).first()
     if user is None:
         raise exceptions.NotFound(detail='Пользователя не существует.') 
+
+    if is_free == True and event.price > 0:
+        raise PaymentRequiredError
+    elif is_free == False and event.price <= 0:
+        raise EventIsFreeError
     
     if event.status != EventStatus.PUBLISHED:
         raise EventNotPublishedError
