@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status
 from rest_framework.filters import SearchFilter
@@ -7,7 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.events.models import Category
+from apps.events.models import Category, EventStatus
 from apps.events.serializers.categories import (
     CategoryInputSerializer,
     CategoryOutputSerializer,
@@ -39,7 +40,9 @@ class ListCreateCategoryView(ListCreateAPIView):
     категории.
     '''
 
-    queryset = Category.objects.all()
+    queryset = Category.objects.annotate(
+        events_count=Count('events', filter=~Q(events__status=EventStatus.DRAFT))
+    )
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
 
@@ -59,6 +62,7 @@ class ListCreateCategoryView(ListCreateAPIView):
         input_serializer = self.get_serializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
         instance = input_serializer.save()
+        instance = self.get_queryset().get(pk=instance.pk)
 
         output_serializer = CategoryOutputSerializer(instance=instance)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
@@ -95,7 +99,9 @@ class RetrieveUpdateDeleteCategoryView(RetrieveDestroyAPIView, UpdateModelMixin)
     категории по её ID.
     '''
 
-    queryset = Category.objects.all()
+    queryset = Category.objects.annotate(
+        events_count=Count('events', filter=~Q(events__status=EventStatus.DRAFT))
+    )
     lookup_url_kwarg = 'id'
 
     def get_serializer_class(self):
