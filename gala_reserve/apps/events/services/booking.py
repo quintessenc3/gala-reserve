@@ -91,7 +91,7 @@ def book_free_event(*, event_id: int, user_id: int) -> None:
     '''
 
     with transaction.atomic():
-        event, user, registration = _try_register(event_id=event_id, user_id=user_id)
+        event, user, registration = _try_register(event_id=event_id, user_id=user_id, is_free=True)
         
         registration.status = RegistrationStatus.CONFIRMED
         registration.confirmed_at = timezone.now()
