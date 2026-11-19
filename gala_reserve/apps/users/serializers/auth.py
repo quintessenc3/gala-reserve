@@ -1,6 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.validators import RegexValidator
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from apps.users.models import OneTimeCode, User
 
@@ -14,7 +15,9 @@ class RegisterInputSerializer(serializers.ModelSerializer):
         model = User
         fields = ('email', 'username', 'password', 'first_name', 'last_name')
         extra_kwargs = {
-            'password': {'validators': [validate_password]}
+            'email': {'validators': [UniqueValidator(queryset=User.objects.all(), lookup='iexact')]},
+            'username': {'validators': [UniqueValidator(queryset=User.objects.all(), lookup='iexact')]},
+            'password': {'validators': [validate_password]},
         }
 
 
