@@ -8,8 +8,10 @@ from apps.events.factories import EventFactory
 from apps.events.models import EventStatus
 from apps.events.services.booking import (
     AlreadyRegisteredError,
+    EventIsFreeError,
     EventNotPublishedError,
     NoSeatsAvailableError,
+    PaymentRequiredError,
     RegistrationClosedError,
     _try_register,
     book_free_event,
@@ -30,6 +32,7 @@ class TestTryRegister:
             event, user, registration = _try_register(
                 event_id=self.event.pk,
                 user_id=self.user.pk,
+                is_free=True,
             )
 
         assert Registration.objects.count() == 1
@@ -39,11 +42,30 @@ class TestTryRegister:
 
     def test_event_does_not_exist(self):
         with pytest.raises(exceptions.NotFound), transaction.atomic():
-            _try_register(event_id=-1, user_id=self.user.pk)
+            _try_register(event_id=-1, user_id=self.user.pk, is_free=True)
 
     def test_user_does_not_exist(self):
         with pytest.raises(exceptions.NotFound), transaction.atomic():
-            _try_register(event_id=self.event.pk, user_id=-1)
+            _try_register(event_id=self.event.pk, user_id=-1, is_free=True)
+
+    def test_paid_event_cannot_be_registered_as_free(self):
+        self.event.price = 1
+        self.event.save(update_fields=['price'])
+
+        with pytest.raises(PaymentRequiredError), transaction.atomic():
+            _try_register(
+                event_id=self.event.pk,
+                user_id=self.user.pk,
+                is_free=True,
+            )
+
+    def test_free_event_cannot_be_registered_as_paid(self):
+        with pytest.raises(EventIsFreeError), transaction.atomic():
+            _try_register(
+                event_id=self.event.pk,
+                user_id=self.user.pk,
+                is_free=False,
+            )
 
     def test_event_is_not_published(self):
         self.event.status = EventStatus.DRAFT
@@ -51,27 +73,27 @@ class TestTryRegister:
         self.event.save(update_fields=['status', 'published_at'])
 
         with pytest.raises(EventNotPublishedError), transaction.atomic():
-            _try_register(event_id=self.event.pk, user_id=self.user.pk)
+            _try_register(event_id=self.event.pk, user_id=self.user.pk, is_free=True)
 
     def test_registration_is_closed(self):
         self.event.start_at = timezone.now() - timedelta(days=1)
         self.event.save(update_fields=['start_at'])
 
         with pytest.raises(RegistrationClosedError), transaction.atomic():
-            _try_register(event_id=self.event.pk, user_id=self.user.pk)
+            _try_register(event_id=self.event.pk, user_id=self.user.pk, is_free=True)
 
     def test_no_seats_are_available(self):
         self.event.seats_taken = self.event.capacity
         self.event.save(update_fields=['seats_taken'])
 
         with pytest.raises(NoSeatsAvailableError), transaction.atomic():
-            _try_register(event_id=self.event.pk, user_id=self.user.pk)
+            _try_register(event_id=self.event.pk, user_id=self.user.pk, is_free=True)
 
     def test_user_is_already_registered(self):
         RegistrationFactory.create(user=self.user, event=self.event)
 
         with pytest.raises(AlreadyRegisteredError), transaction.atomic():
-            _try_register(event_id=self.event.pk, user_id=self.user.pk)
+            _try_register(event_id=self.event.pk, user_id=self.user.pk, is_free=True)
 
 
 class TestBookFreeEvent:
