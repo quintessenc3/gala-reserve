@@ -37,7 +37,12 @@ def exception_handler(exc, context):
         else:
             response_error['message'] = exc.detail
 
-        response_error['code'] = exc.default_code
+        if isinstance(exc, exceptions.ValidationError):
+            code = "invalid"
+        else:
+            code = exc.get_codes()
+
+        response_error['code'] = code
         status_code = exc.status_code
     elif isinstance(exc, DomainError):
         status_code = exc.http_status
