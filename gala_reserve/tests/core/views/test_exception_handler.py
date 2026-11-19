@@ -23,6 +23,14 @@ def test_response_format():
     assert response_data['error']['details'] == None
 
 
+def test_api_exception_custom_code():
+    exc = exceptions.APIException(code='custom_code')
+    response = exception_handler(exc, {})
+    response_data = response.data
+
+    assert response_data['error']['code'] == 'custom_code'
+
+
 def test_domain_error_handling():
     class InvalidCode(DomainError):
         code = error_codes.INVALID_CODE
