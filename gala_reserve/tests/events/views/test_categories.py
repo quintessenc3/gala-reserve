@@ -1,7 +1,7 @@
 import pytest
 from apps.core import error_codes
 from apps.events.factories import CategoryFactory, EventFactory
-from apps.events.models import Category
+from apps.events.models import Category, EventStatus
 from django.urls import reverse
 
 
@@ -31,6 +31,23 @@ class TestListCreateCategoryView:
         assert len(response_data['results']) == 1
         assert response_data['results'][0]['name'] == 'Birthdays'
 
+    def test_get_events_count(self, api_client):
+        category = CategoryFactory.create()
+        other_category = CategoryFactory.create()
+        for _ in range(3):
+            EventFactory.create(category=category, status=EventStatus.PUBLISHED)
+        EventFactory.create(category=category, status=EventStatus.DRAFT)
+        EventFactory.create(category=other_category, status=EventStatus.PUBLISHED)
+
+        response = api_client.get(reverse('list-create-category'))
+
+        assert response.status_code == 200
+        category_data = next(
+            item for item in response.json()['results']
+            if item['id'] == category.pk
+        )
+        assert category_data['events_count'] == 3
+
     def test_post_requires_verified_user(self, auth_client):
         response = auth_client.post(reverse('list-create-category'), data=self.payload, format='json')
 
@@ -47,6 +64,7 @@ class TestListCreateCategoryView:
         assert response.status_code == 201
         assert Category.objects.count() == 1
         assert Category.objects.first().user == user
+        assert response.json()['events_count'] == 0
 
     def test_case_insensitive_duplicated_returns_400(self, verified_client):
         CategoryFactory.create(name='Concerts')

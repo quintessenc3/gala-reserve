@@ -1,9 +1,10 @@
 from apps.events.factories import CategoryFactory, EventFactory
-from apps.events.models import EventStatus
+from apps.events.models import Category, EventStatus
 from apps.events.serializers.categories import (
     CategoryInputSerializer,
     CategoryOutputSerializer,
 )
+from django.db.models import Count, Q
 
 
 class TestCategoryOutputSerializer:
@@ -17,6 +18,9 @@ class TestCategoryOutputSerializer:
         for _ in range(2):
             EventFactory.create(category=other_category, status=EventStatus.PUBLISHED)
 
+        category = Category.objects.annotate(
+            events_count=Count('events', filter=~Q(events__status=EventStatus.DRAFT))
+        ).get(pk=category.pk)
         serializer = CategoryOutputSerializer(instance=category)
         assert serializer.data['events_count'] == 3
 
