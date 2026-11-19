@@ -42,3 +42,16 @@ class PasswordResetByOldPasswordInputSerializer(serializers.Serializer):
 
     old_password = serializers.CharField()
     new_password = serializers.CharField(validators=[validate_password])
+
+
+class MyProfilePhotoUploadSerializer(serializers.ModelSerializer):
+    '''
+    Сериализатор входных данных для обновления фотографии пользователя.
+    '''
+
+    class Meta:
+        model = User
+        fields = ('photo',)
+        extra_kwargs = {
+            'photo': {'required': True}
+        }
