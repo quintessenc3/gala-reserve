@@ -18,6 +18,7 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ('username',)
     PHOTO_DIRECTORY = Path('users', 'photos')
+    DEFAULT_PHOTO = PHOTO_DIRECTORY / 'default_avatar.webp'
     MIN_USERNAME_LENGTH = 3
     MAX_USERNAME_LENGTH = 30
 
@@ -32,7 +33,7 @@ class User(AbstractUser):
     first_name = models.CharField('Имя', max_length=50, blank=True)
     last_name = models.CharField('Фамилия', max_length=50, blank=True)
     bio = models.CharField('О себе', max_length=500, blank=True)
-    photo = models.ImageField('Фото профиля', upload_to=PHOTO_DIRECTORY, null=True, blank=True)
+    photo = models.ImageField('Фото профиля', upload_to=PHOTO_DIRECTORY, default=str(DEFAULT_PHOTO), null=True, blank=True)
     is_email_verified = models.BooleanField('Электронная почта верифицирована?', default=False)
 
     def __repr__(self):
