@@ -55,7 +55,7 @@ class TestRegisterFreeEventView:
         response = auth_client.post(self.get_url(event.pk))
 
         assert response.status_code == 403
-        assert response.json()['error']['code'] == 'permission_denied'
+        assert response.json()['error']['code'] == 'email_not_verified'
 
     def test_post_nonexistent_event_returns_not_found_error_code(self, verified_client):
         response = verified_client.post(self.get_url(0))

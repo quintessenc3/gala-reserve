@@ -120,7 +120,7 @@ class TestListCreateEventView:
         response = auth_client.post(self.url, data=self.payload, format='json')
 
         assert response.status_code == 403
-        assert response.json()['error']['code'] == 'permission_denied'
+        assert response.json()['error']['code'] == 'email_not_verified'
 
     def test_post_success(self, user, verified_client):
         response = verified_client.post(self.url, data=self.payload, format='json')
@@ -222,7 +222,7 @@ class TestRetrieveUpdateEventView:
         )
 
         assert response.status_code == 403
-        assert response.json()['error']['code'] == 'permission_denied'
+        assert response.json()['error']['code'] == 'email_not_verified'
         event.refresh_from_db()
         assert event.title == 'Original title'
 
@@ -331,7 +331,7 @@ class TestUploadEventImageView:
         )
 
         assert response.status_code == 403
-        assert response.json()['error']['code'] == 'permission_denied'
+        assert response.json()['error']['code'] == 'email_not_verified'
 
     @pytest.mark.parametrize(('error', 'code'),
         [

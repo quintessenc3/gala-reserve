@@ -71,7 +71,7 @@ class TestMyEventsView:
         response = auth_client.get(reverse('my-events'))
 
         assert response.status_code == 403
-        assert response.json()['error']['code'] == 'permission_denied'
+        assert response.json()['error']['code'] == 'email_not_verified'
 
 
 class TestMyRegistrationsView:

@@ -35,7 +35,7 @@ class TestListCreateCategoryView:
         response = auth_client.post(reverse('list-create-category'), data=self.payload, format='json')
 
         assert response.status_code == 403
-        assert response.json()['error']['code'] == 'permission_denied'
+        assert response.json()['error']['code'] == 'email_not_verified'
 
     def test_post_success(self, user, verified_client):
         response = verified_client.post(
@@ -81,7 +81,7 @@ class TestRetrieveUpdateDeleteCategoryView:
         )
 
         assert response.status_code == 403
-        assert response.json()['error']['code'] == 'permission_denied'
+        assert response.json()['error']['code'] == 'email_not_verified'
 
     def test_delete_requires_verified_user(self, auth_client):
         response = auth_client.delete(
@@ -89,7 +89,7 @@ class TestRetrieveUpdateDeleteCategoryView:
         )
 
         assert response.status_code == 403
-        assert response.json()['error']['code'] == 'permission_denied'
+        assert response.json()['error']['code'] == 'email_not_verified'
         assert Category.objects.filter(pk=self.category.pk).exists()
 
     def test_patch_success(self, verified_client):
