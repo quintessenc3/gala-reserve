@@ -2,6 +2,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 from rest_framework import status
 from rest_framework.generics import GenericAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.mixins import UpdateModelMixin
+from rest_framework.parsers import MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,10 +21,12 @@ from apps.users.models import User
 from apps.users.permissions import IsVerified
 from apps.users.serializers.my_profile import (
     MyProfileOutputSerializer,
+    MyProfilePhotoUploadSerializer,
     MyProfileUpdateSerializer,
     PasswordResetByOldPasswordInputSerializer,
 )
 from apps.users.services.auth import user_reset_password_by_old_password
+from apps.users.services.profile import user_set_photo
 from apps.users.throttles import PasswordResetUserThrottle
 
 
@@ -167,4 +170,32 @@ class MyTicketsView(ListAPIView):
             .select_related('event')
         )
 
-    
+
+@extend_schema_view(
+    put=extend_schema(
+        tags=['Users'],
+        summary='Обновить фотографию профиля',
+        description='Обновляет фотографию профиля.',
+        request=MyProfilePhotoUploadSerializer,
+        responses={
+            200: MyProfileOutputSerializer,
+            404: OpenApiResponse(description='Пользователя не существует')
+        }
+    )
+)
+class MyProfileUploadPhotoView(GenericAPIView):
+    '''
+    Представление для загрузки фотографии профиля.
+    '''
+
+    serializer_class = MyProfilePhotoUploadSerializer
+    parser_classes = (MultiPartParser,)
+
+    def put(self, request: Request, *args, **kwargs) -> Response:
+        input_serializer = self.get_serializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        user = user_set_photo(user_id=request.user.pk, **input_serializer.validated_data)
+
+        output_serializer = MyProfileOutputSerializer(instance=user)
+        return Response(output_serializer.data, status=status.HTTP_200_OK)

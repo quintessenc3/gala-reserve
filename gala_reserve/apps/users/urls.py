@@ -12,6 +12,7 @@ from apps.users.views.auth import (
 )
 from apps.users.views.my_profile import (
     MyEventsView,
+    MyProfileUploadPhotoView,
     MyProfileView,
     MyRegistrationsView,
     MyTicketsView,
@@ -32,4 +33,5 @@ urlpatterns = [
     path('users/me/events/', MyEventsView.as_view(), name='my-events'),
     path('users/me/registrations/', MyRegistrationsView.as_view(), name='my-registrations'),
     path('users/me/tickets/', MyTicketsView.as_view(), name='my-tickets'),
+    path('users/me/photo/', MyProfileUploadPhotoView.as_view(), name='set-profile-photo')
 ]
