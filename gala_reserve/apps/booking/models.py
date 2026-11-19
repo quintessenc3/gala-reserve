@@ -84,7 +84,7 @@ class Registration(models.Model):
 class TicketStatus(models.TextChoices):
     VALID = 'valid', 'Действительный'
     USED = 'used', 'Использованный'
-    CANCELLED = 'Недействительный'
+    CANCELLED = 'cancelled', 'Недействительный'
 
 class Ticket(models.Model):
     '''
