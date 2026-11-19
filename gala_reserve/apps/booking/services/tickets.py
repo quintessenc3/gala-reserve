@@ -11,6 +11,7 @@ from apps.booking.models import (
 )
 from apps.core import error_codes
 from apps.core.exceptions import DomainError
+from apps.events.models import EventStatus
 
 
 class TicketAlreadyUsedError(DomainError):
@@ -47,13 +48,15 @@ def ticket_use(*, ticket_id: str) -> Ticket:
         if ticket is None:
             raise exceptions.NotFound('Билета не существует.')
 
+        event = ticket.event
+        if event.status != EventStatus.PUBLISHED:
+            raise CheckInClosedError
+
         if ticket.status == TicketStatus.CANCELLED:
             raise TicketCancelledError
         elif ticket.status == TicketStatus.USED:
             raise TicketAlreadyUsedError
         elif ticket.status == TicketStatus.VALID:
-            event = ticket.event
-
             if (
                 event.start_at - timedelta(minutes=Ticket.CHECKIN_OPENS_BEFORE_MINUTES) 
                 > timezone.now()
