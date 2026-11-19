@@ -73,7 +73,7 @@ class OneTimeCode(models.Model):
     CODE_LENGTH = 6
     CODE_REGEX = f'^[0-9]{{{CODE_LENGTH}}}$'
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='onetimecodes')
     purpose = models.CharField('Назначение', max_length=32, choices=OneTimeCodePurpose.choices)
     code_hash = models.CharField('Хэш кода', max_length=64)
     attempts = models.PositiveSmallIntegerField('Кол-во попыток', default=0)
