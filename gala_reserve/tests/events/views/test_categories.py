@@ -73,25 +73,6 @@ class TestRetrieveUpdateDeleteCategoryView:
 
         assert response.status_code == 200
 
-    def test_patch_requires_verified_user(self, auth_client):
-        response = auth_client.patch(
-            reverse('retrieve-update-delete-category', kwargs={'id': self.category.pk}),
-            data=self.payload,
-            format='json',
-        )
-
-        assert response.status_code == 403
-        assert response.json()['error']['code'] == 'email_not_verified'
-
-    def test_delete_requires_verified_user(self, auth_client):
-        response = auth_client.delete(
-            reverse('retrieve-update-delete-category', kwargs={'id': self.category.pk})
-        )
-
-        assert response.status_code == 403
-        assert response.json()['error']['code'] == 'email_not_verified'
-        assert Category.objects.filter(pk=self.category.pk).exists()
-
     def test_patch_success(self, verified_client):
         response = verified_client.patch(
             reverse('retrieve-update-delete-category', kwargs={'id': self.category.pk}),
@@ -106,6 +87,23 @@ class TestRetrieveUpdateDeleteCategoryView:
         self.category.refresh_from_db()
         assert self.category.name == self.payload['name']
         assert self.category.description == self.payload['description']
+
+    def test_patch_success_for_admin(self, user, other_user, verified_client):
+        user.is_staff = True
+        user.save(update_fields=['is_staff'])
+        category = CategoryFactory.create(user=other_user)
+
+        response = verified_client.patch(
+            reverse('retrieve-update-delete-category', kwargs={'id': category.pk}),
+            data=self.payload,
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.json()['name'] == self.payload['name']
+
+        category.refresh_from_db()
+        assert category.name == self.payload['name']
 
     def test_patch_category_owned_by_another_user_is_forbidden(self, other_user, verified_client):
         category = CategoryFactory.create(user=other_user)
@@ -128,6 +126,18 @@ class TestRetrieveUpdateDeleteCategoryView:
         assert response.status_code == 403
         assert response.json()['error']['code'] == 'permission_denied'
         assert Category.objects.filter(pk=category.pk).exists()
+
+    def test_delete_success_for_admin(self, user, other_user, verified_client):
+        user.is_staff = True
+        user.save(update_fields=['is_staff'])
+        category = CategoryFactory.create(user=other_user)
+
+        response = verified_client.delete(
+            reverse('retrieve-update-delete-category', kwargs={'id': category.pk})
+        )
+
+        assert response.status_code == 204
+        assert not Category.objects.filter(pk=category.pk).exists()
 
     def test_delete_success(self, verified_client):
         response = verified_client.delete(

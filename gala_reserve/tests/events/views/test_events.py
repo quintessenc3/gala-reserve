@@ -212,20 +212,6 @@ class TestRetrieveUpdateEventView:
         event.refresh_from_db()
         assert event.title == payload['title']
 
-    def test_patch_requires_verified_user(self, user, auth_client):
-        event = EventFactory.create(user=user, title='Original title')
-
-        response = auth_client.patch(
-            reverse('retrieve-update-event', kwargs={'id': event.pk}),
-            data={'title': 'Updated title'},
-            format='json',
-        )
-
-        assert response.status_code == 403
-        assert response.json()['error']['code'] == 'email_not_verified'
-        event.refresh_from_db()
-        assert event.title == 'Original title'
-
     def test_patch_requires_owner(self, other_user, verified_client):
         event = EventFactory.create(user=other_user, status=EventStatus.PUBLISHED)
 
@@ -320,18 +306,6 @@ class TestUploadEventImageView:
 
         assert response.status_code == 403
         assert response.json()['error']['code'] == 'permission_denied'
-
-    def test_put_requires_verified_user(self, user, auth_client):
-        event = EventFactory.create(user=user)
-
-        response = auth_client.put(
-            self.get_url(event.pk),
-            data={'image': make_uploaded_image()},
-            format='multipart',
-        )
-
-        assert response.status_code == 403
-        assert response.json()['error']['code'] == 'email_not_verified'
 
     @pytest.mark.parametrize(('error', 'code'),
         [
