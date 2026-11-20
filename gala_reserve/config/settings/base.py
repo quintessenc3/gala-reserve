@@ -141,7 +141,8 @@ SPECTACULAR_SETTINGS = {
     'ENUM_NAME_OVERRIDES': {
         'EventStatusEnum': 'apps.events.models.EventStatus',
     },
-    'COMPONENT_SPLIT_REQUEST': True
+    'COMPONENT_SPLIT_REQUEST': True,
+    'REDOC_DIST': 'https://cdn.jsdelivr.net/npm/redoc@2.5.4'
 }
 
 SIMPLE_JWT = {
