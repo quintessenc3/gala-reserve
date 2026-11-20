@@ -6,13 +6,6 @@ x-prod: &prod
   init: true
   environment:
     DJANGO_SETTINGS_MODULE: config.settings.prod
-    EMAIL_HOST: ${EMAIL_HOST}
-    EMAIL_PORT: ${EMAIL_PORT}
-    EMAIL_HOST_USER: ${EMAIL_HOST_USER}
-    EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
-    EMAIL_USE_TLS: ${EMAIL_USE_TLS}
-    EMAIL_USE_SSL: ${EMAIL_USE_SSL}
-    DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
   logging:
     driver: json-file
     options:
