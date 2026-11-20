@@ -54,7 +54,8 @@ from apps.users.throttles import (
         request=RegisterInputSerializer,
         responses={
             201: RegisterOutputSerializer,
-            400: OpenApiResponse(description='Ошибка валидации входных данных'),
+            400: OpenApiResponse(description='Ошибка валидации'),
+            429: OpenApiResponse(description='Слишком много запросов')
         },
         examples=[
             OpenApiExample(
@@ -99,7 +100,8 @@ class RegisterView(CreateAPIView):
         request=TokenObtainPairSerializer,
         responses={
             200: TokenObtainPairSerializer,
-            401: OpenApiResponse(description='Неверный код')
+            401: OpenApiResponse(description='Пользователя с такими аутентификационными данными не существует'),
+            429: OpenApiResponse(description='Слишком много запросов')
         }
     )
 )
@@ -119,7 +121,7 @@ class TokenObtainPairView(_TokenObtainPairView):
         request=TokenRefreshSerializer,
         responses={
             201: TokenRefreshSerializer,
-            401: OpenApiResponse(description='Неверный код')
+            401: OpenApiResponse(description='Пользователя с таким refresh токеном не существует')
         }
     )
 )
@@ -136,9 +138,11 @@ class TokenRefreshView(_TokenRefreshView):
         request=EmailVerifyInputSerializer,
         responses={
             200: MessageOutputSerializer,
-            400: OpenApiResponse(description='Код неверный / истек / превышен лимит попыток'),
+            400: OpenApiResponse(description='Ошибка валидации / Код неверный / Код истек / Превышен лимит попыток у кода'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
             404: OpenApiResponse(description='Пользователь не найден'),
-            409: OpenApiResponse(description='Пользователь уже верифицирован')
+            409: OpenApiResponse(description='Пользователь уже верифицирован'),
+            429: OpenApiResponse(description='Слишком много запросов')
         },
         examples=[
             OpenApiExample(
@@ -175,7 +179,10 @@ class EmailVerifyView(GenericAPIView):
         description='Повторно отправляет верификационный код на электронную почту.',
         responses={
             200: MessageOutputSerializer,
-            404: OpenApiResponse(description='Пользователь не найден')
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            404: OpenApiResponse(description='Пользователь не найден'),
+            409: OpenApiResponse(description='Пользователь уже верифицирован'),
+            429: OpenApiResponse(description='Слишком много запросов')
         }
     )
 )
@@ -226,7 +233,8 @@ class LogoutView(_TokenBlacklistView):
         description='Отправляет код сброса пароля на электронную почту пользователя.',
         request=RequestEmailResetCodeInputSerializer,
         responses={
-            202: MessageOutputSerializer
+            202: MessageOutputSerializer,
+            400: OpenApiResponse(description='Ошибка валидации')
         }
     )
 )
@@ -256,7 +264,8 @@ class RequestResetCodeView(GenericAPIView):
         request=PasswordResetByCodeInputSerializer,
         responses={
             200: MessageOutputSerializer,
-            400: OpenApiResponse(description='Код неверный / истек / превышен лимит попыток')
+            400: OpenApiResponse(description='Ошибка валидации / Код неверный / Код истек / Превышен лимит попыток у кода'),
+            429: OpenApiResponse(description='Слишком много запросов')
         }
     )
 )

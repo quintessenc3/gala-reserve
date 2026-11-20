@@ -22,7 +22,10 @@ from apps.users.permissions import IsOwnerOrAdmin, IsVerified
         tags=['Categories'],
         summary='Получить список категорий',
         description='Возвращает список категорий',
-        request=CategoryOutputSerializer
+        responses={
+            200: CategoryOutputSerializer(many=True),
+            400: OpenApiResponse(description='Неправильные значения query-параметра(ов)')
+        }
     ),
     post=extend_schema(
         tags=['Categories'],
@@ -30,7 +33,10 @@ from apps.users.permissions import IsOwnerOrAdmin, IsVerified
         description='Создает категорию',
         request=CategoryInputSerializer,
         responses={
-            201: CategoryOutputSerializer
+            201: CategoryOutputSerializer,
+            400: OpenApiResponse(description='Ошибка валидации'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется верифицированный пользователь')
         }
     )
 )
@@ -74,7 +80,8 @@ class ListCreateCategoryView(ListCreateAPIView):
         summary='Получить данные категории',
         description='Извлекает данные о категории по её ID',
         responses={
-            200: CategoryOutputSerializer
+            200: CategoryOutputSerializer,
+            404: OpenApiResponse(description='Категории не существует')
         }
     ),
     patch=extend_schema(
@@ -84,13 +91,22 @@ class ListCreateCategoryView(ListCreateAPIView):
         request=CategoryInputSerializer,
         responses={
             200: CategoryOutputSerializer,
-            400: OpenApiResponse(description='Ошибка валидации')
+            400: OpenApiResponse(description='Ошибка валидации'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется владелец категории или администратор'),
+            404: OpenApiResponse(description='Категории не существует')
         }
     ),
     delete=extend_schema(
         tags=['Categories'],
         summary='Удалить категорию',
-        description='Удаляет категорию по её ID'
+        description='Удаляет категорию по её ID',
+        responses={
+            204: OpenApiResponse(),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется владелец категории или администратор'),
+            404: OpenApiResponse(description='Категории не существует')
+        }
     )
 )
 class RetrieveUpdateDeleteCategoryView(RetrieveDestroyAPIView, UpdateModelMixin):

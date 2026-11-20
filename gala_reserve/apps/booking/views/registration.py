@@ -24,6 +24,7 @@ from apps.users.permissions import IsOwnerOrAdmin
         responses={
             200: MessageOutputSerializer,
             401: OpenApiResponse(description='Неверный или истекший access-токен'),
+            403: OpenApiResponse(description='Требуется владелец или администратор'),
             404: OpenApiResponse(description='Регистрации не существует'),
             409: OpenApiResponse(description='Регистрация неактивна / Срок отмены регистрации прошел / '
                                             'Билет регистрации уже использован')

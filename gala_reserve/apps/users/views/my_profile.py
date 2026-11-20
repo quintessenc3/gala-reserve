@@ -36,7 +36,8 @@ from apps.users.throttles import PasswordResetUserThrottle
         summary='Получить информацию о своем профиле',
         description='Получает информацию о текущем пользователе, вошедшего в систему.',
         responses={
-            200: MyProfileOutputSerializer
+            200: MyProfileOutputSerializer,
+            401: OpenApiResponse(description='Неверный аутентификационный токен')
         }
     ),
     patch=extend_schema(
@@ -45,7 +46,8 @@ from apps.users.throttles import PasswordResetUserThrottle
         description='Обновляет информацию о текущем пользователе, вошедшего в систему.',
         responses={
             200: MyProfileUpdateSerializer,
-            400: OpenApiResponse(description='Ошибка валидации')
+            400: OpenApiResponse(description='Ошибка валидации'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен')
         }
     )
 )
@@ -77,8 +79,10 @@ class MyProfileView(RetrieveAPIView, UpdateModelMixin):
         request=PasswordResetByOldPasswordInputSerializer,
         responses={
             200: MessageOutputSerializer,
-            400: OpenApiResponse(description='Старый пароль не совпадает'),
+            400: OpenApiResponse(description='Ошибка валидации / Старый пароль не совпадает'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
             404: OpenApiResponse(description='Пользователь не найден'),
+            429: OpenApiResponse(description='Слишком много запросов')
         }
     )
 )
@@ -103,7 +107,12 @@ class PasswordResetByOldPasswordView(GenericAPIView):
     get=extend_schema(
         tags=['Users'],
         summary='Получить список своих мероприятий',
-        description='Получает список своих мероприятий любого статуса.'
+        description='Получает список своих мероприятий любого статуса.',
+        responses={
+            200: EventOutputSerializer(many=True),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется верифицированный пользователь')
+        }
     )
 )
 class MyEventsView(ListAPIView):
@@ -123,7 +132,11 @@ class MyEventsView(ListAPIView):
     get=extend_schema(
         tags=['Users'],
         summary='Получить список своих регистраций на мероприятия',
-        description='Получает список своих регистраций на мероприятия.'
+        description='Получает список своих регистраций на мероприятия.',
+        responses={
+            200: RegistrationOutputSerializer(many=True),
+            401: OpenApiResponse(description='Неверный аутентификационный токен')
+        }
     )
 )
 class MyRegistrationsView(ListAPIView):
@@ -149,7 +162,7 @@ class MyRegistrationsView(ListAPIView):
         summary='Получить список своих билетов на мероприятия',
         description='Получает список своих билетов на мероприятия.',
         responses={
-            200: TicketOutputSerializer,
+            200: TicketOutputSerializer(many=True),
             401: OpenApiResponse(description='Неверный или истекший access-токен')
         }
     )
@@ -179,6 +192,9 @@ class MyTicketsView(ListAPIView):
         request=MyProfilePhotoUploadSerializer,
         responses={
             200: MyProfileOutputSerializer,
+            400: OpenApiResponse(description='Ошибка валидации / Файл не является корректным изображением / Недопустимый формат / '
+                                 'Слишком большой / Слишком широкий или высокий'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
             404: OpenApiResponse(description='Пользователя не существует')
         }
     )

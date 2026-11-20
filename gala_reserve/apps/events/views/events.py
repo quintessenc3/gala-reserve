@@ -45,7 +45,9 @@ from apps.users.permissions import IsOwnerOrAdmin, IsVerified
         request=EventCreateSerializer,
         responses={
             201: EventOutputSerializer,
-            400: OpenApiResponse(description='Ошибка валидации')
+            400: OpenApiResponse(description='Ошибка валидации'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется верифицированный пользователь')
         },
     )
 )
@@ -96,6 +98,8 @@ class ListCreateEventView(ListCreateAPIView):
         description='Получает детали мероприятия по его ID.',
         responses={
             200: EventOutputDetailSerializer,
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется владелец или администратор для доступа к черновику'),
             404: OpenApiResponse(description='Мероприятия не существует')
         }
     ),
@@ -107,6 +111,9 @@ class ListCreateEventView(ListCreateAPIView):
         responses={
             200: EventOutputDetailSerializer,
             400: OpenApiResponse(description='Ошибка валидации'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется владелец или администратор'),
+            404: OpenApiResponse(description='Мероприятия не существует'),
             409: OpenApiResponse(description='Мероприятие завершилось или отменилось / Попытка изменить организатора у опубликованного мероприятия')
         }
     )
@@ -148,8 +155,12 @@ class RetrieveUpdateEventView(RetrieveAPIView):
         request=EventImageUploadSerializer,
         responses={
             200: EventOutputSerializer,
+            400: OpenApiResponse(description='Ошибка валидации'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется владелец или администратор'),
             404: OpenApiResponse(description='Мероприятия не существует'),
-            409: OpenApiResponse(description='Мероприятие уже завершилось или отменилось / Некорректное изображение')
+            409: OpenApiResponse(description='Мероприятие уже завершилось или отменилось / Файл не является корректным изображением / ' \
+                                            'Файл имеет недопустимый формат / Файл слишком большой / Файл слишком широкий или высокий')
         }
     )
 )
@@ -183,6 +194,9 @@ class UploadEventImageView(GenericAPIView):
         request=OpenApiRequest(),
         responses={
             200: EventOutputSerializer,
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется владелец или администратор'),
+            404: OpenApiResponse(description='Мероприятия не существует.'),
             409: OpenApiResponse(description='Не загружена картинка / Мероприятие уже началось / Уже было опубликовано')
         }
     )
@@ -214,8 +228,10 @@ class EventPublishView(GenericAPIView):
         request=OpenApiRequest(),
         responses={
             200: EventOutputSerializer,
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется владелец или администратор'),
             404: OpenApiResponse(description='Мероприятия не существует'),
-            409: OpenApiResponse(description='Мероприятие уже завершилось / Находится в статусе черновика')
+            409: OpenApiResponse(description='Мероприятие уже завершилось / Находится в статусе черновика / Уже началось')
         }
     )
 )

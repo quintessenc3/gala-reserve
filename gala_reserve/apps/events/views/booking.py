@@ -24,9 +24,12 @@ from apps.users.permissions import IsVerified
         request=OpenApiRequest(),
         responses={
             200: MessageOutputSerializer,
+            400: OpenApiResponse(description='Ошибка валидации'),
+            401: OpenApiResponse(description='Неверный аутентификационный токен'),
+            403: OpenApiResponse(description='Требуется верифицированный пользователь'),
             404: OpenApiResponse(description='Мероприятия или пользователя не существует'),
-            409: OpenApiResponse(description='Мероприятие не опубликовано / Регистрация закрыта /'
-                                            ' Нет свободных мест / Уже зарегистрирован')
+            409: OpenApiResponse(description='Мероприятие не опубликовано / Мероприятие платное / '
+                                            'Регистрация закрыта / Нет свободных мест / Уже зарегистрирован')
         }
     )
 )

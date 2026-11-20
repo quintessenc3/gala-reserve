@@ -25,6 +25,7 @@ from apps.core.serializers import MessageOutputSerializer
         responses={
             200: MessageOutputSerializer,
             401: OpenApiResponse(description='Неверный или истекший access-токен'),
+            403: OpenApiResponse(description='Требуется владелец мероприятия или администратор'),
             404: OpenApiResponse(description='Билета не существует'),
             409: OpenApiResponse(description='Билет отменен или использован / Время открытия входа еще не наступило')
         }
