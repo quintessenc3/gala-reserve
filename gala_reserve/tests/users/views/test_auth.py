@@ -27,14 +27,16 @@ class TestRegisterView:
         'last_name': 'Doe',
     }
 
-    def test_success(self, transactional_db, api_client, mocker):
-        send_verification_email = mocker.patch('apps.users.services.auth.send_verification_email.delay')
+    @pytest.fixture(autouse=True)
+    def send_verification_email_mock(self, mocker):
+        return mocker.patch('apps.users.services.auth.send_verification_email.delay')
 
+    def test_success(self, transactional_db, api_client, send_verification_email_mock):
         response = api_client.post(reverse('register'), self.payload, format='json')
 
         assert response.status_code == 201
         assert User.objects.filter(email=self.payload['email']).exists()
-        send_verification_email.assert_called_once()
+        send_verification_email_mock.assert_called_once()
 
     def test_duplicate_email_returns_400(self, api_client, user):
         payload = {**self.payload, 'email': user.email}
@@ -148,6 +150,10 @@ class TestEmailVerifyView:
 
 
 class TestCodeResendView:
+    @pytest.fixture(autouse=True)
+    def send_verification_email_mock(self, mocker):
+        return mocker.patch('apps.users.services.auth.send_verification_email.delay')
+
     def test_success(self, user, auth_client):
         response = auth_client.get(reverse('email-resend'))
 
@@ -194,6 +200,10 @@ class TestCodeResendView:
         assert response.json()['error'].get('retry_after', None) == '3600'
 
 class TestRequestResetCodeView:
+    @pytest.fixture(autouse=True)
+    def send_password_reset_email_mock(self, mocker):
+        return mocker.patch('apps.users.services.auth.send_password_reset_email.delay')
+
     def test_success(self, transactional_db, user, api_client, send_password_reset_email_mock):
         payload = {'email': user.email}
 
@@ -213,6 +223,10 @@ class TestRequestResetCodeView:
 
 
 class TestPasswordResetByCodeView:
+    @pytest.fixture(autouse=True)
+    def send_password_reset_email_mock(self, mocker):
+        return mocker.patch('apps.users.services.auth.send_password_reset_email.delay')
+
     @pytest.fixture(autouse=True)
     def setup(self, user):
         self.otp, self.code = user_request_password_reset_code(email=user.email)

@@ -3,7 +3,6 @@ from types import SimpleNamespace
 import pytest
 from apps.users.factories import UserFactory
 from django.core.cache import cache
-from pytest_mock import MockerFixture
 from rest_framework.test import APIClient
 
 
@@ -33,16 +32,6 @@ def verified_client(user, api_client) -> APIClient:
     user.save(update_fields=['is_email_verified'])
     api_client.force_authenticate(user=user)
     return api_client
-
-
-@pytest.fixture
-def send_verification_email_mock(mocker: MockerFixture):
-    return mocker.patch('apps.users.tasks.auth.send_verification_email.delay')
-
-
-@pytest.fixture
-def send_password_reset_email_mock(mocker: MockerFixture):
-    return mocker.patch('apps.users.tasks.auth.send_password_reset_email.delay')
 
 
 @pytest.fixture

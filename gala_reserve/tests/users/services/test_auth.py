@@ -46,6 +46,10 @@ def user_otp_code(user: User) -> tuple[OneTimeCode, str | None]:
     return otp_issue(user.pk, OneTimeCodePurpose.EMAIL_VERIFICATION)
 
 class TestRegister:
+    @pytest.fixture(autouse=True)
+    def send_verification_email_mock(self, mocker):
+        return mocker.patch('apps.users.services.auth.send_verification_email.delay')
+
     def test_normal_register(self, transactional_db, send_verification_email_mock, user_payload):
         user = user_register(**user_payload)
 
@@ -57,21 +61,21 @@ class TestRegister:
 
         send_verification_email_mock.assert_called_once()
 
-    def test_unique_user_username(self, db, send_verification_email_mock, user_payload):
+    def test_unique_user_username(self, db, user_payload):
         user_register(**user_payload)
 
         with pytest.raises(IntegrityError):
             user_payload['email'] = 'user_2@example.com'
             user_register(**user_payload)
 
-    def test_unique_user_email(self, db, send_verification_email_mock, user_payload):
+    def test_unique_user_email(self, db, user_payload):
         user_register(**user_payload)
 
         with pytest.raises(IntegrityError):
             user_payload['username'] = 'User2'
             user_register(**user_payload)
 
-    def test_failure_in_otp_issue_leaves_no_user(self, db, mocker, send_verification_email_mock, user_payload):
+    def test_failure_in_otp_issue_leaves_no_user(self, db, mocker, user_payload):
         mocker.patch('apps.users.services.auth.otp_issue', side_effect=RuntimeError)
 
         with pytest.raises(RuntimeError):
@@ -207,6 +211,10 @@ class TestUserEmailVerify:
 
 
 class TestOtpResend:
+    @pytest.fixture(autouse=True)
+    def send_verification_email_mock(self, mocker):
+        return mocker.patch('apps.users.services.auth.send_verification_email.delay')
+
     def test_normal_resend(self, user, send_verification_email_mock):
         otp_resend(user_id=user.pk)
         send_verification_email_mock.assert_called_once()
@@ -228,6 +236,10 @@ class TestOtpResend:
 
 
 class TestUserRequestPasswordResetCode:
+    @pytest.fixture(autouse=True)
+    def send_password_reset_email_mock(self, mocker):
+        return mocker.patch('apps.users.services.auth.send_password_reset_email.delay')
+
     def test_normal_request(self, transactional_db, user, send_password_reset_email_mock):
         user_request_password_reset_code(email=user.email)
         assert OneTimeCode.objects.filter(user=user, purpose=OneTimeCodePurpose.PASSWORD_RESET).exists()
@@ -243,7 +255,11 @@ class TestUserRequestPasswordResetCode:
 
 class TestUserResetPasswordByCode:
     new_password = 'HardP@ssw0rd'
-    
+
+    @pytest.fixture(autouse=True)
+    def send_password_reset_email_mock(self, mocker):
+        return mocker.patch('apps.users.services.auth.send_password_reset_email.delay')
+
     @pytest.fixture(autouse=True)
     def setup(self, user, other_user):
         self.otp, self.code = user_request_password_reset_code(email=user.email)

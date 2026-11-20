@@ -97,11 +97,11 @@ class TestTryRegister:
 
 
 class TestBookFreeEvent:
-    def test_normal_book(self, transactional_db, user, mocker):
-        send_ticket_email_mock = mocker.patch(
-            'apps.events.services.booking.send_ticket_email.delay'
-        )
+    @pytest.fixture(autouse=True)
+    def send_ticket_email_mock(self, mocker):
+        return mocker.patch('apps.events.services.booking.send_ticket_email.delay')
 
+    def test_normal_book(self, transactional_db, user, send_ticket_email_mock):
         with freezegun.freeze_time('2016-01-01 12:00:00'):
             event = EventFactory.create(status=EventStatus.PUBLISHED)
 

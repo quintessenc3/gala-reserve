@@ -21,14 +21,13 @@ from django.utils import timezone
 from rest_framework import exceptions
 
 
-@pytest.fixture
-def send_registration_cancelled_email_mock(mocker):
-    return mocker.patch(
-        'apps.booking.services.registrations.send_registration_cancelled_email.delay'
-    )
-
-
 class TestRegistrationCancel:
+    @pytest.fixture(autouse=True)
+    def send_registration_cancelled_email_mock(self, mocker):
+        return mocker.patch(
+            'apps.booking.services.registrations.send_registration_cancelled_email.delay'
+        )
+
     def test_normal_cancel(
         self,
         transactional_db,

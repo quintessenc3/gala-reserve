@@ -17,8 +17,8 @@ from django.utils import timezone
 
 class TestCancelRegistrationView:
     @pytest.fixture(autouse=True)
-    def setup(self, mocker):
-        self.send_registration_cancelled_email_mock = mocker.patch(
+    def send_registration_cancelled_email_mock(self, mocker):
+        return mocker.patch(
             'apps.booking.services.registrations.send_registration_cancelled_email.delay'
         )
 
@@ -26,7 +26,13 @@ class TestCancelRegistrationView:
     def get_url(registration_id):
         return reverse('cancel-registration', kwargs={'id': registration_id})
 
-    def test_post_success(self, transactional_db, user, verified_client):
+    def test_post_success(
+        self,
+        transactional_db,
+        user,
+        verified_client,
+        send_registration_cancelled_email_mock,
+    ):
         with freezegun.freeze_time('2026-01-01 10:00:00'):
             event = EventFactory.create(seats_taken=1)
             confirmed_at = timezone.now()
@@ -61,7 +67,7 @@ class TestCancelRegistrationView:
         assert ticket.used_at is None
         assert event.seats_taken == 0
         assert event.updated_at == cancelled_at
-        self.send_registration_cancelled_email_mock.assert_called_once()
+        send_registration_cancelled_email_mock.assert_called_once()
 
     def test_post_admin_can_cancel_registration(self, user, other_user, verified_client):
         user.is_staff = True

@@ -14,16 +14,20 @@ from django.utils import timezone
 
 class TestRegisterFreeEventView:
     @pytest.fixture(autouse=True)
-    def setup(self, mocker):
-        self.send_ticket_email_mock = mocker.patch(
-            'apps.events.services.booking.send_ticket_email.delay'
-        )
+    def send_ticket_email_mock(self, mocker):
+        return mocker.patch('apps.events.services.booking.send_ticket_email.delay')
 
     @staticmethod
     def get_url(event_id):
         return reverse('register-free-event', kwargs={'id': event_id})
 
-    def test_post_success(self, transactional_db, user, verified_client):
+    def test_post_success(
+        self,
+        transactional_db,
+        user,
+        verified_client,
+        send_ticket_email_mock,
+    ):
         with freezegun.freeze_time('2025-01-01 10:00:00'):
             event = EventFactory.create(status=EventStatus.PUBLISHED)
 
@@ -47,7 +51,7 @@ class TestRegisterFreeEventView:
         assert ticket.status == TicketStatus.VALID
         assert ticket.used_at is None
         assert event.seats_taken == 1
-        self.send_ticket_email_mock.assert_called_once()
+        send_ticket_email_mock.assert_called_once()
 
     def test_post_requires_verified_user(self, auth_client):
         event = EventFactory.create(status=EventStatus.PUBLISHED)
