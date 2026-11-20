@@ -6,13 +6,14 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from apps.booking.permissions import IsTicketEventOwnerOrAdmin
 from apps.booking.selectors import TicketSelector
 from apps.booking.services.tickets import ticket_use
 from apps.core.serializers import MessageOutputSerializer
-from apps.users.permissions import IsOwnerOrAdmin
 
 
 @extend_schema_view(
@@ -35,7 +36,7 @@ class TicketUseView(GenericAPIView):
     '''
 
     serializer_class = MessageOutputSerializer
-    permission_classes = (IsOwnerOrAdmin,)
+    permission_classes = (IsAuthenticated, IsTicketEventOwnerOrAdmin)
     lookup_url_kwarg = 'id'
 
     def get_queryset(self):
