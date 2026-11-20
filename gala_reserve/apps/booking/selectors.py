@@ -1,3 +1,5 @@
+from django.db.models import Q
+
 from apps.booking.models import Registration, Ticket
 
 
@@ -18,4 +20,4 @@ class TicketSelector:
         if viewer.is_authenticated and viewer.is_staff:
             return queryset
 
-        return queryset.filter(user=viewer)
+        return queryset.filter(Q(user=viewer) | Q(event__user=viewer))
