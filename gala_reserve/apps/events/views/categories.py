@@ -63,7 +63,7 @@ class ListCreateCategoryView(ListCreateAPIView):
 
     queryset = Category.objects.annotate(
         events_count=Count('events', filter=~Q(events__status=EventStatus.DRAFT))
-    )
+    ).order_by('id')
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
 
