@@ -1,5 +1,6 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import (
+    OpenApiExample,
     OpenApiRequest,
     OpenApiResponse,
     extend_schema,
@@ -49,6 +50,22 @@ from apps.users.permissions import IsOwnerOrAdmin, IsVerified
             401: OpenApiResponse(description='Неверный аутентификационный токен'),
             403: OpenApiResponse(description='Требуется верифицированный пользователь')
         },
+        examples=[
+            OpenApiExample(
+                name='Пример запроса',
+                value={
+                    'title': 'NEON AFTERDARK - ночь за пределами реальности',
+                    'description': 'Одна ночь, три сцены и десятки артистов электронной музыки. Индустриальное пространство превратится в огромную площадку с неоновыми инсталляциями, экспериментальным светом и атмосферой андеграундной культуры. В программе: techno, melodic house, industrial и ambient. Дресс-код приветствуется, но не обязателен. Приходи за музыкой, знакомствами и впечатлениями, которые останутся надолго.',
+                    'category': 1,
+                    'address': 'Москва, Дизайн-завод, Большая Новодмитровская улица, 36',
+                    'start_at': '2026-12-19T18:00:00Z',
+                    'end_at': '2026-12-20T04:00:00Z',
+                    'capacity': 850,
+                    'price': '0.00'
+                },
+                request_only=True
+            )
+        ]
     )
 )
 class ListCreateEventView(ListCreateAPIView):
@@ -115,7 +132,23 @@ class ListCreateEventView(ListCreateAPIView):
             403: OpenApiResponse(description='Требуется владелец или администратор'),
             404: OpenApiResponse(description='Мероприятия не существует'),
             409: OpenApiResponse(description='Мероприятие завершилось или отменилось / Попытка изменить организатора у опубликованного мероприятия')
-        }
+        },
+        examples=[
+            OpenApiExample(
+                name='Пример запроса',
+                value={
+                    'title': 'NEON AFTERDARK: Новая орбита',
+                    'description': 'Продолжение ночного музыкального фестиваля NEON AFTERDARK. Электронная музыка, визуальные инсталляции, лазерные шоу и несколько тематических танцполов. В программе выступления приглашённых диджеев, интерактивные зоны и специальные световые перформансы.',
+                    'category': 1,
+                    'address': 'Москва, Берсеневская набережная, 6, стр. 3',
+                    'start_at': '2026-12-19T17:00:00Z',
+                    'end_at': '2026-12-19T20:00:00Z',
+                    'capacity': 900,
+                    'price': '0.00'
+                },
+                request_only=True
+            )
+        ]
     )
 )
 class RetrieveUpdateEventView(RetrieveAPIView):

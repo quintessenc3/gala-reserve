@@ -1,5 +1,10 @@
 from django.db.models import Count, Q
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import status
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView
@@ -37,7 +42,17 @@ from apps.users.permissions import IsOwnerOrAdmin, IsVerified
             400: OpenApiResponse(description='Ошибка валидации'),
             401: OpenApiResponse(description='Неверный аутентификационный токен'),
             403: OpenApiResponse(description='Требуется верифицированный пользователь')
-        }
+        },
+        examples=[
+            OpenApiExample(
+                'Пример запроса',
+                value={
+                    'name': 'Концерты',
+                    'description': 'Организация встреч с выступлениями'
+                },
+                request_only=True
+            )
+        ]
     )
 )
 class ListCreateCategoryView(ListCreateAPIView):
@@ -95,7 +110,17 @@ class ListCreateCategoryView(ListCreateAPIView):
             401: OpenApiResponse(description='Неверный аутентификационный токен'),
             403: OpenApiResponse(description='Требуется владелец категории или администратор'),
             404: OpenApiResponse(description='Категории не существует')
-        }
+        },
+        examples=[
+            OpenApiExample(
+                'Пример запроса',
+                value={
+                    'name': 'Концерты (крупные)',
+                    'description': 'Организация крупных концертов'
+                },
+                request_only=True
+            )
+        ]
     ),
     delete=extend_schema(
         tags=['Categories'],

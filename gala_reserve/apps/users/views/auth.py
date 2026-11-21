@@ -61,11 +61,11 @@ from apps.users.throttles import (
             OpenApiExample(
                 'Пример запроса',
                 value={
-                    'email': 'user@example.com',
-                    'username': 'User',
-                    'password': 'P@ssw0rd',
-                    'first_name': 'Иван',
-                    'last_name': 'Иванов',
+                    "email": "andrey.volkov@example.com",
+                    "username": "andrey_volkov",
+                    "password": "rT8!vN4#qL2@xP7$kM9",
+                    "first_name": "Андрей",
+                    "last_name": "Волков"
                 },
                 request_only=True,
             ),

@@ -1,4 +1,9 @@
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import status
 from rest_framework.generics import GenericAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.mixins import UpdateModelMixin
@@ -48,7 +53,19 @@ from apps.users.throttles import PasswordResetUserThrottle
             200: MyProfileUpdateSerializer,
             400: OpenApiResponse(description='Ошибка валидации'),
             401: OpenApiResponse(description='Неверный аутентификационный токен')
-        }
+        },
+        examples=[
+            OpenApiExample(
+                name='Пример запроса',
+                value={
+                    "first_name": "Андрей",
+                    "last_name": "Волков",
+                    "username": "andrey_volkov",
+                    "bio": "Уличный фотограф. Люблю архитектуру, ночные прогулки и атмосферу больших городов. Всегда ищу необычные ракурсы и интересные истории."
+                },
+                request_only=True
+            )
+        ]
     )
 )
 class MyProfileView(RetrieveAPIView, UpdateModelMixin):
@@ -83,7 +100,17 @@ class MyProfileView(RetrieveAPIView, UpdateModelMixin):
             401: OpenApiResponse(description='Неверный аутентификационный токен'),
             404: OpenApiResponse(description='Пользователь не найден'),
             429: OpenApiResponse(description='Слишком много запросов')
-        }
+        },
+        examples=[
+            OpenApiExample(
+                name='Пример запроса',
+                value={
+                    "old_password": "rT8!vN4#qL2@xP7$kM9",
+                    "new_password": "C6@zW3!pH8#sR2^mJ5q"
+                },
+                request_only=True
+            )
+        ]
     )
 )
 class PasswordResetByOldPasswordView(GenericAPIView):
